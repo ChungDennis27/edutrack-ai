@@ -1,0 +1,135 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ------------------------------------------------------------------ */
+/* HKDSE 現代學院風 — Global Design Tokens                         */
+/* ------------------------------------------------------------------ */
+
+@layer base {
+  :root {
+    --color-primary: #2563eb;
+    --color-primary-dark: #1e3a8a;
+    --color-secondary: #6d28d9;
+    --color-accent-red: #ef4444;
+    --color-accent-amber: #f59e0b;
+    --color-surface: #09090b;
+    --color-surface-card: #18181b;
+    --color-surface-elevated: #27272a;
+    --color-border: #3f3f46;
+    --color-text-primary: #fafafa;
+    --color-text-muted: #a1a1aa;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-surface text-zinc-50 font-sans antialiased;
+    background-image: radial-gradient(
+      ellipse at 50% 0%,
+      rgba(37, 99, 235, 0.08) 0%,
+      transparent 60%
+    );
+    min-height: 100vh;
+  }
+
+  ::selection {
+    @apply bg-primary-500/40 text-white;
+  }
+}
+
+@layer components {
+  /* Glassmorphism card */
+  .glass-card {
+    @apply relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-glass;
+  }
+
+  .glass-card-hover {
+    @apply glass-card transition-all duration-300 hover:border-primary-500/30 hover:shadow-glass-hover hover:-translate-y-0.5;
+  }
+
+  /* Primary gradient button */
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-xl bg-gradient-primary px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all duration-200 hover:brightness-110 hover:shadow-glass-hover active:scale-[0.98];
+  }
+
+  /* AI feature button (purple gradient) */
+  .btn-ai {
+    @apply inline-flex items-center justify-center rounded-xl bg-gradient-ai px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all duration-200 hover:brightness-110 active:scale-[0.98];
+  }
+
+  /* Skeleton shimmer loading */
+  .skeleton {
+    @apply relative overflow-hidden rounded-lg bg-surface-elevated;
+    background-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.06) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite linear;
+  }
+
+  /* Streaming cursor blink */
+  .streaming-cursor::after {
+    content: "▋";
+    @apply ml-0.5 text-primary-400 animate-cursor-blink;
+  }
+
+  /* Weak topic badge */
+  .badge-weak {
+    @apply inline-flex items-center rounded-full bg-accent-red/20 px-2.5 py-0.5 text-xs font-medium text-accent-red ring-1 ring-accent-red/30;
+  }
+
+  .badge-strong {
+    @apply inline-flex items-center rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-xs font-medium text-emerald-400 ring-1 ring-emerald-500/30;
+  }
+
+  /* 3D flashcard flip container */
+  .flashcard-scene {
+    perspective: 1000px;
+  }
+
+  .flashcard-inner {
+    @apply relative h-full w-full transition-transform duration-500;
+    transform-style: preserve-3d;
+  }
+
+  .flashcard-inner.flipped {
+    transform: rotateY(180deg);
+  }
+
+  .flashcard-face {
+    @apply absolute inset-0 flex flex-col items-center justify-center rounded-2xl glass-card p-6 backface-hidden;
+  }
+
+  .flashcard-back {
+    transform: rotateY(180deg);
+  }
+}
+
+@layer utilities {
+  .backface-hidden {
+    backface-visibility: hidden;
+  }
+
+  .text-gradient-primary {
+    @apply bg-gradient-primary bg-clip-text text-transparent;
+  }
+
+  .text-gradient-ai {
+    @apply bg-gradient-ai bg-clip-text text-transparent;
+  }
+}
+
+/* KaTeX math rendering overrides for dark mode */
+.katex {
+  color: inherit;
+}
+
+.katex-display {
+  @apply my-4 overflow-x-auto;
+}

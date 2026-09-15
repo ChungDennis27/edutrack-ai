@@ -1,0 +1,28 @@
+# --- Python / backend ---
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+
+# --- Node / frontend ---
+node_modules/
+dist/
+npm-debug.log*
+
+# --- Secrets (never commit) ---
+.env
+.env.*
+!.env.example
+
+# --- Runtime data ---
+backend/app/data/chroma_store/
+
+# --- OS / editors ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log

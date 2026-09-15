@@ -1,0 +1,71 @@
+# EduTrack AI — one-command stack: postgres + backend + frontend
+#
+#   docker compose up --build        # build & start everything
+#   open http://localhost:8080       # app
+#   docker compose down              # stop (data kept in volumes)
+#   docker compose down -v           # stop and wipe data
+#
+# Prerequisites: backend/.env must exist (copy from backend/.env.example and
+# set LLM_API_KEY). Secrets are injected via env_file, never baked into images.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: edutrack_ai
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d edutrack_ai"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      args:
+        EMBEDDING_MODEL: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+    env_file:
+      - ./backend/.env
+    environment:
+      # Override the local-dev values from .env to point at the compose network
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/edutrack_ai
+      CHROMA_PERSIST_DIR: /data/chroma_store
+      FRONTEND_ORIGIN: http://localhost:8080
+      # Keep "development" so JWT cookies are not marked Secure over plain http.
+      FLASK_ENV: development
+    volumes:
+      - chroma_data:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:5000/api/health', timeout=3).status==200 else 1)",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 120s
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  chroma_data:
