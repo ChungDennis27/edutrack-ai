@@ -75,7 +75,7 @@ class ChromaVectorStore:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _make_id(text: str, metadata: dict) -> str:
+    def make_id(text: str, metadata: dict) -> str:
         raw = text[:200] + json.dumps(metadata, sort_keys=True)
         return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
 
@@ -107,7 +107,7 @@ class ChromaVectorStore:
                 "paragraph_index": i,
                 "language": "zh-HK",
             }
-            chunks.append(DocumentChunk(id=ChromaVectorStore._make_id(text, meta), text=text, metadata=meta))
+            chunks.append(DocumentChunk(id=ChromaVectorStore.make_id(text, meta), text=text, metadata=meta))
         return chunks
 
     @staticmethod
@@ -142,7 +142,7 @@ class ChromaVectorStore:
                 "has_latex": "$" in section,
                 "language": "zh-HK",
             }
-            chunks.append(DocumentChunk(id=ChromaVectorStore._make_id(text, meta), text=text, metadata=meta))
+            chunks.append(DocumentChunk(id=ChromaVectorStore.make_id(text, meta), text=text, metadata=meta))
         return chunks
 
     @staticmethod
@@ -169,7 +169,7 @@ class ChromaVectorStore:
                 "organization_criteria": organization_score,
                 "language": "en-HK",
             }
-            chunks.append(DocumentChunk(id=ChromaVectorStore._make_id(text, meta), text=text, metadata=meta))
+            chunks.append(DocumentChunk(id=ChromaVectorStore.make_id(text, meta), text=text, metadata=meta))
         return chunks
 
     # ------------------------------------------------------------------
@@ -246,6 +246,10 @@ class ChromaVectorStore:
                     )
                 )
         return retrieved
+
+    def delete_where(self, where: dict[str, Any]) -> None:
+        """Delete chunks matching a metadata filter (no-op if none match)."""
+        self._collection.delete(where=where)
 
     def delete_collection(self) -> None:
         self._client.delete_collection(self.collection_name)

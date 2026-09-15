@@ -1,17 +1,20 @@
 #!/bin/sh
 set -e
 
-echo "==> [1/4] Waiting for PostgreSQL"
+echo "==> [1/5] Waiting for PostgreSQL"
 python scripts/wait_for_db.py
 
-echo "==> [2/4] Applying database migrations"
+echo "==> [2/5] Applying database migrations"
 flask --app run.py db upgrade
 
-echo "==> [3/4] Seeding curriculum (idempotent)"
+echo "==> [3/5] Seeding curriculum (idempotent)"
 python scripts/seed_db.py
 
-echo "==> [4/4] Initialising vector store (idempotent)"
+echo "==> [4/5] Initialising vector store (idempotent)"
 python scripts/init_chroma.py
+
+echo "==> [5/5] Ingesting classical Chinese texts (idempotent)"
+python scripts/ingest_classical.py
 
 echo "==> Starting gunicorn on :5000"
 exec gunicorn \

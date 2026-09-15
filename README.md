@@ -32,6 +32,8 @@ edutrack-ai/
 │   │       └── chroma_store/         # 本地向量資料庫持久化目錄
 │   ├── scripts/
 │   │   ├── init_chroma.py            # ChromaDB 初始化 CLI
+│   │   ├── ingest_classical.py       # 將文言文寫入向量庫（可重複執行）
+│   │   ├── inspect_chroma.py         # 檢視向量庫內容／語意搜尋
 │   │   ├── seed_db.py                # 課程種子資料
 │   │   └── wait_for_db.py            # Docker 啟動時等 DB 就緒
 │   ├── Dockerfile                    # python:3.12-slim + gunicorn
