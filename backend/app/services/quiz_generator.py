@@ -5,6 +5,7 @@ import logging
 from dataclasses import dataclass, field
 
 from app.services.llm_client import LLMClient, extract_json
+from app.services.prompt_rules import LATEX_FORMAT_RULE
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,7 @@ QUIZ_SYSTEM_PROMPT = """你是一位香港 DSE 出卷專家。你的任務是根
     }
   ]
 }
-"""
+""" + LATEX_FORMAT_RULE
 
 
 @dataclass

@@ -52,6 +52,8 @@ def build_chunks() -> list[DocumentChunk]:
                 "author": text["author"],
                 "source": text["source"],
                 "dynasty": text["dynasty"],
+                "category": text["category"],
+                "genre": text["genre"],
                 "paragraph_index": index,
                 "language": "zh-HK",
             }

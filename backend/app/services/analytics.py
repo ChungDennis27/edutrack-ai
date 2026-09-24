@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import case, func
 
@@ -212,3 +212,39 @@ class AnalyticsService:
     def flag_slow_answers(time_spent: int, is_correct: bool) -> bool:
         """Mark answers that took too long as potential weak areas."""
         return is_correct and time_spent >= SLOW_ANSWER_THRESHOLD_SEC
+
+    @classmethod
+    def weekly_trend(cls, user_id: int, weeks: int = 8) -> list[dict]:
+        """Average quiz score per week for the last ``weeks`` weeks."""
+        since = datetime.now(timezone.utc) - timedelta(weeks=weeks)
+        week = func.date_trunc("week", QuizAttempt.completed_at)
+
+        rows = (
+            db.session.query(
+                week.label("week"),
+                func.avg(QuizAttempt.score_percent).label("avg_score"),
+                func.count(QuizAttempt.id).label("attempts"),
+            )
+            .filter(
+                QuizAttempt.user_id == user_id,
+                QuizAttempt.status == "completed",
+                QuizAttempt.completed_at.isnot(None),
+                QuizAttempt.completed_at >= since,
+            )
+            .group_by(week)
+            .order_by(week)
+            .all()
+        )
+
+        trend: list[dict] = []
+        for row in rows:
+            label = row.week.strftime("%m/%d") if row.week else ""
+            trend.append(
+                {
+                    "week": row.week.isoformat() if row.week else None,
+                    "label": label,
+                    "avg_score": round(float(row.avg_score or 0), 1),
+                    "attempts": int(row.attempts or 0),
+                }
+            )
+        return trend

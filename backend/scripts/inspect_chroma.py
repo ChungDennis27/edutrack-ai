@@ -31,6 +31,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Inspect ChromaDB contents")
     parser.add_argument("--full", action="store_true", help="Print full document text")
     parser.add_argument("--subject", help="Filter by subject (chinese|math|english)")
+    parser.add_argument("--source-type", help="Filter by source_type (syllabus|past_papers|notes|exemplars)")
     parser.add_argument("--search", help="Run a semantic search query instead of listing")
     parser.add_argument("--top-k", type=int, default=5, help="Results for --search")
     args = parser.parse_args()
@@ -72,14 +73,30 @@ def main() -> None:
             return
 
         # ---- List mode ----
-        where = {"subject": args.subject} if args.subject else None
+        filters = []
+        if args.subject:
+            filters.append({"subject": args.subject})
+        if args.source_type:
+            filters.append({"source_type": args.source_type})
+        if len(filters) == 1:
+            where = filters[0]
+        elif len(filters) > 1:
+            where = {"$and": filters}
+        else:
+            where = None
+
         data = collection.get(include=["documents", "metadatas"], where=where)
 
         ids = data["ids"]
         docs = data["documents"]
         metas = data["metadatas"]
+        label = ", ".join(
+            f"{k}={v}"
+            for k, v in (("subject", args.subject), ("source_type", args.source_type))
+            if v
+        )
         print(f"\nListing {len(ids)} document(s)"
-              + (f" where subject={args.subject}" if args.subject else "") + "\n")
+              + (f" where {label}" if label else "") + "\n")
 
         for i, (doc_id, doc, meta) in enumerate(zip(ids, docs, metas), 1):
             meta_bits = " | ".join(f"{k}={v}" for k, v in (meta or {}).items())

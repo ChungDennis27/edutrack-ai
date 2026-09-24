@@ -247,6 +247,11 @@ class ChromaVectorStore:
                 )
         return retrieved
 
+    def count_where(self, where: dict[str, Any]) -> int:
+        """Count chunks matching a metadata filter."""
+        result = self._collection.get(where=where, include=[])
+        return len(result["ids"])
+
     def delete_where(self, where: dict[str, Any]) -> None:
         """Delete chunks matching a metadata filter (no-op if none match)."""
         self._collection.delete(where=where)

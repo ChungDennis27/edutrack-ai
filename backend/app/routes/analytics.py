@@ -1,7 +1,7 @@
 """Analytics & weak-topic report routes."""
 from dataclasses import asdict
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from app.services.analytics import AnalyticsService
@@ -24,3 +24,12 @@ def weak_topic_report():
         "strong_topics": [asdict(s) for s in report.strong_topics],
         "recommendations": report.recommendations,
     })
+
+
+@analytics_bp.route("/trend", methods=["GET"])
+@jwt_required()
+def score_trend():
+    """Weekly average score trend for the dashboard chart."""
+    user_id = int(get_jwt_identity())
+    weeks = max(1, min(int(request.args.get("weeks", 8)), 52))
+    return jsonify({"weeks": weeks, "trend": AnalyticsService.weekly_trend(user_id, weeks)})

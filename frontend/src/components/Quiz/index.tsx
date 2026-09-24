@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import MathText from "@/components/common/MathText";
+import MarkdownMath from "@/components/common/MarkdownMath";
 import { apiJson } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -317,9 +317,9 @@ export default function Quiz() {
         {/* Current question */}
         <div className="glass-card p-8">
           <p className="mb-1 text-xs text-zinc-500">第 {currentIndex + 1} 題</p>
-          <MathText
+          <MarkdownMath
             text={currentQ.stem}
-            className="mb-6 block text-base leading-relaxed text-zinc-100"
+            className="mb-6 text-base leading-relaxed text-zinc-100"
           />
 
           {/* Options */}
@@ -345,7 +345,7 @@ export default function Quiz() {
                 >
                   {key}
                 </span>
-                <MathText text={value} />
+                <MarkdownMath text={value} />
               </button>
             ))}
           </div>
@@ -409,7 +409,7 @@ export default function Quiz() {
             >
               <div className="mb-3 flex items-start justify-between">
                 <div className="text-sm font-medium text-zinc-200">
-                  {i + 1}. <MathText text={r.stem} />
+                  {i + 1}. <MarkdownMath text={r.stem} />
                 </div>
                 <span
                   className={cn(

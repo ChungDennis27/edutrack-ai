@@ -133,3 +133,73 @@
 .katex-display {
   @apply my-4 overflow-x-auto;
 }
+
+/* ------------------------------------------------------------------ */
+/* Markdown rendering (react-markdown + GFM)                          */
+/* ------------------------------------------------------------------ */
+@layer components {
+  .markdown-body {
+    @apply text-sm leading-relaxed;
+  }
+
+  .markdown-body > * + * {
+    @apply mt-2;
+  }
+
+  .markdown-body h1 {
+    @apply mt-4 text-lg font-semibold text-zinc-100;
+  }
+
+  .markdown-body h2 {
+    @apply mt-4 text-base font-semibold text-zinc-100;
+  }
+
+  .markdown-body h3 {
+    @apply mt-3 text-sm font-semibold text-zinc-200;
+  }
+
+  .markdown-body ul {
+    @apply ml-5 list-disc space-y-1;
+  }
+
+  .markdown-body ol {
+    @apply ml-5 list-decimal space-y-1;
+  }
+
+  .markdown-body strong {
+    @apply font-semibold text-zinc-100;
+  }
+
+  .markdown-body a {
+    @apply text-primary-400 underline underline-offset-2;
+  }
+
+  .markdown-body code {
+    @apply rounded bg-surface-elevated px-1.5 py-0.5 font-mono text-[0.85em] text-secondary-200;
+  }
+
+  .markdown-body pre {
+    @apply mt-2 overflow-x-auto rounded-xl bg-surface-elevated p-3;
+  }
+
+  .markdown-body pre code {
+    @apply bg-transparent p-0 text-zinc-200;
+  }
+
+  .markdown-body blockquote {
+    @apply border-l-2 border-white/15 pl-3 text-zinc-400;
+  }
+
+  .markdown-body table {
+    @apply w-full border-collapse text-xs;
+  }
+
+  .markdown-body th,
+  .markdown-body td {
+    @apply border border-white/10 px-2 py-1 text-left;
+  }
+
+  .markdown-body hr {
+    @apply my-3 border-white/10;
+  }
+}

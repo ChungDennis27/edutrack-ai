@@ -5,6 +5,7 @@ import json
 import logging
 
 from app.services.llm_client import LLMClient, extract_json
+from app.services.prompt_rules import LATEX_FORMAT_RULE
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,7 @@ MATH_HINT_PROMPT = """你是一位 DSE 數學科閱卷員。你的任務是引�
   "is_final_hint": false,
   "next_step_question": "引導學生思考的問題"
 }
-"""
+""" + LATEX_FORMAT_RULE
 
 
 class MathHintService:

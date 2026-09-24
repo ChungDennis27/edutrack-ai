@@ -1,5 +1,5 @@
 import { useState } from "react";
-import MathText from "@/components/common/MathText";
+import MarkdownMath from "@/components/common/MarkdownMath";
 import { apiJson } from "@/lib/api";
 
 interface Hint {
@@ -183,17 +183,17 @@ export default function MathHint() {
                 )}
               </div>
 
-              <MathText
+              <MarkdownMath
                 text={hint.hint_text}
-                className="block text-sm leading-relaxed text-zinc-200"
+                className="text-sm leading-relaxed text-zinc-200"
               />
 
               {hint.next_step_question && (
                 <div className="mt-4 rounded-xl bg-surface-elevated/70 px-4 py-3">
                   <p className="mb-1 text-[11px] text-zinc-500">想一想</p>
-                  <MathText
+                  <MarkdownMath
                     text={hint.next_step_question}
-                    className="block text-sm text-primary-300"
+                    className="text-sm text-primary-300"
                   />
                 </div>
               )}

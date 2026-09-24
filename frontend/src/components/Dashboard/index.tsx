@@ -13,7 +13,15 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { apiJson } from "@/lib/api";
 import { cn } from "@/lib/utils";
+
+interface TrendPoint {
+  week: string | null;
+  label: string;
+  avg_score: number;
+  attempts: number;
+}
 
 interface TopicData {
   knowledge_point_id: number;
@@ -75,21 +83,22 @@ function StatCard({
 
 export default function Dashboard() {
   const [report, setReport] = useState<ReportData | null>(null);
+  const [trend, setTrend] = useState<TrendPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetchReport();
+    fetchData();
   }, []);
 
-  const fetchReport = async () => {
+  const fetchData = async () => {
     try {
-      const res = await fetch("/api/analytics/report", {
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      setReport(data);
+      const [reportData, trendData] = await Promise.all([
+        apiJson<ReportData>("/api/analytics/report"),
+        apiJson<{ trend: TrendPoint[] }>("/api/analytics/trend?weeks=8"),
+      ]);
+      setReport(reportData);
+      setTrend(trendData.trend);
     } catch (err) {
       setError(err instanceof Error ? err.message : "無法載入數據");
     } finally {
@@ -136,15 +145,7 @@ export default function Dashboard() {
     })),
   ];
 
-  // Mock trend data (would come from backend in production)
-  const trendData = [
-    { date: "第1週", score: 45 },
-    { date: "第2週", score: 52 },
-    { date: "第3週", score: 48 },
-    { date: "第4週", score: 61 },
-    { date: "第5週", score: 58 },
-    { date: "第6週", score: report.overall_mastery },
-  ];
+  const trendData = trend;
 
   const totalAttempts = [...report.weak_topics, ...report.strong_topics].reduce(
     (sum, t) => sum + t.total_attempts,
@@ -227,34 +228,41 @@ export default function Dashboard() {
           <h3 className="mb-4 text-sm font-semibold text-zinc-300">
             學習進度趨勢
           </h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={trendData}>
-              <defs>
-                <linearGradient id="scoreGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-              <XAxis dataKey="date" tick={{ fill: "#a1a1aa", fontSize: 11 }} />
-              <YAxis domain={[0, 100]} tick={{ fill: "#71717a", fontSize: 10 }} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#18181b",
-                  border: "1px solid #3f3f46",
-                  borderRadius: "8px",
-                  color: "#fafafa",
-                }}
-              />
-              <Area
-                type="monotone"
-                dataKey="score"
-                stroke="#2563eb"
-                strokeWidth={2}
-                fill="url(#scoreGradient)"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+          {trendData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={trendData}>
+                <defs>
+                  <linearGradient id="scoreGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                <XAxis dataKey="label" tick={{ fill: "#a1a1aa", fontSize: 11 }} />
+                <YAxis domain={[0, 100]} tick={{ fill: "#71717a", fontSize: 10 }} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#18181b",
+                    border: "1px solid #3f3f46",
+                    borderRadius: "8px",
+                    color: "#fafafa",
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="avg_score"
+                  name="平均分"
+                  stroke="#2563eb"
+                  strokeWidth={2}
+                  fill="url(#scoreGradient)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex h-[300px] items-center justify-center text-sm text-zinc-500">
+              完成測驗後即可看到進度趨勢
+            </div>
+          )}
         </div>
       </div>
 

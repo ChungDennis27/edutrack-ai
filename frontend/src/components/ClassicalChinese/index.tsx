@@ -15,6 +15,8 @@ interface ClassicalText {
   author: string;
   source: string;
   dynasty: string;
+  category: "designated" | "suggested";
+  genre: string;
   rhetoric: string;
   exam_tips: string;
   paragraphs: Paragraph[];
@@ -92,13 +94,26 @@ export default function ClassicalChinese() {
           <select
             value={selectedId}
             onChange={(e) => selectText(e.target.value)}
-            className="rounded-xl border border-white/10 bg-surface-card px-3 py-2 text-sm text-zinc-200 outline-none focus:border-primary-500/50"
+            className="max-w-[16rem] rounded-xl border border-white/10 bg-surface-card px-3 py-2 text-sm text-zinc-200 outline-none focus:border-primary-500/50"
           >
-            {texts.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.title}
-              </option>
-            ))}
+            <optgroup label="12 篇指定（必考）">
+              {texts
+                .filter((t) => t.category === "designated")
+                .map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.title}
+                  </option>
+                ))}
+            </optgroup>
+            <optgroup label="8 篇建議（參考）">
+              {texts
+                .filter((t) => t.category === "suggested")
+                .map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.title}
+                  </option>
+                ))}
+            </optgroup>
           </select>
           <button
             onClick={() => setShowTranslation((v) => !v)}
@@ -120,6 +135,21 @@ export default function ClassicalChinese() {
           {current && (
             <>
               <div className="mb-5 border-b border-white/10 pb-4">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span
+                    className={cn(
+                      "rounded-full px-2.5 py-0.5 text-[11px] font-medium ring-1",
+                      current.category === "designated"
+                        ? "bg-accent-red/15 text-accent-red ring-accent-red/30"
+                        : "bg-secondary-500/15 text-secondary-300 ring-secondary-500/30"
+                    )}
+                  >
+                    {current.category === "designated" ? "指定（必考）" : "建議篇章"}
+                  </span>
+                  <span className="rounded-full bg-surface-elevated px-2.5 py-0.5 text-[11px] text-zinc-400">
+                    {current.genre}
+                  </span>
+                </div>
                 <h3 className="text-lg font-semibold text-zinc-100">{current.title}</h3>
                 <p className="mt-1 text-xs text-zinc-500">
                   {current.dynasty} · {current.author} · {current.source}

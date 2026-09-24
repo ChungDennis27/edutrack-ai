@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
-import MathText from "@/components/common/MathText";
+import MarkdownMath from "@/components/common/MarkdownMath";
 import { apiRequest } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -65,7 +65,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
           <p className="whitespace-pre-wrap">{message.content}</p>
         ) : message.content ? (
           <>
-            <MathText text={message.content} />
+            <MarkdownMath text={message.content} />
             {message.isStreaming && (
               <span className="ml-0.5 inline-block animate-cursor-blink text-primary-400">
                 ▋

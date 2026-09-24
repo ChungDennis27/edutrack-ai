@@ -11,6 +11,10 @@ chromadb==1.0.15
 anthropic==0.34.2
 openai==3.13.0
 sentence-transformers==3.0.1
+pypdf==6.19.0
 
 # Production server (Linux deploy only)
 gunicorn==22.0.0; sys_platform != "win32"
+
+# Testing
+pytest==8.3.5

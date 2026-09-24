@@ -1,7 +1,7 @@
 import { FormEvent, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import MathText from "@/components/common/MathText";
+import MarkdownMath from "@/components/common/MarkdownMath";
 import { cn } from "@/lib/utils";
 
 type Mode = "login" | "register";
@@ -104,7 +104,7 @@ export default function Auth() {
             ))}
           </div>
           <div className="mt-6 border-t border-white/10 pt-4 text-center text-sm text-zinc-300">
-            <MathText text="$$x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$$" />
+            <MarkdownMath text="$$x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$$" />
           </div>
         </div>
       </section>

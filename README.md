@@ -20,24 +20,30 @@ edutrack-ai/
 │   │   │   └── analytics.py          # 弱項分析報告
 │   │   ├── services/
 │   │   │   ├── llm_client.py         # Provider 無關 LLM 層（OpenAI 相容 / Anthropic）
+│   │   │   ├── prompt_rules.py       # 共用 prompt 規則（LaTeX 格式）
 │   │   │   ├── chroma_store.py       # ChromaDB 初始化 + RAG 檢索
-│   │   │   ├── classical_texts.py    # DSE 指定文言文內容
+│   │   │   ├── document_ingest.py    # PDF/TXT/MD → 清理 → chunk → metadata
+│   │   │   ├── classical_texts.py    # 12 指定 + 8 建議文言文（20 篇章）
 │   │   │   ├── ai_engine.py          # LLM + RAG 編排
 │   │   │   ├── quiz_generator.py     # 測驗 JSON 生成與驗證
 │   │   │   ├── essay_grading.py      # 英文作文批改（C/L/O）
 │   │   │   ├── math_hint.py          # 數學步驟提示
 │   │   │   ├── flashcard_service.py  # SM-2 演算法
-│   │   │   └── analytics.py          # 弱項分析演算法
+│   │   │   └── analytics.py          # 弱項分析 + 週趨勢
 │   │   └── data/
-│   │       └── chroma_store/         # 本地向量資料庫持久化目錄
+│   │       ├── chroma_store/         # 本地向量資料庫持久化目錄
+│   │       └── materials/            # 課程教材（PDF，見該目錄 README）
 │   ├── scripts/
 │   │   ├── init_chroma.py            # ChromaDB 初始化 CLI
 │   │   ├── ingest_classical.py       # 將文言文寫入向量庫（可重複執行）
+│   │   ├── ingest_documents.py       # 將教材 PDF 寫入向量庫
 │   │   ├── inspect_chroma.py         # 檢視向量庫內容／語意搜尋
-│   │   ├── seed_db.py                # 課程種子資料
+│   │   ├── seed_db.py                # 課程科目／課題／知識點（upsert）
+│   │   ├── seed_attempts.py          # 合成測驗資料（弱項分析用）
 │   │   └── wait_for_db.py            # Docker 啟動時等 DB 就緒
+│   ├── tests/                        # pytest（SM-2 / chunking / analytics）
 │   ├── Dockerfile                    # python:3.12-slim + gunicorn
-│   ├── docker-entrypoint.sh          # migrate → seed → gunicorn
+│   ├── docker-entrypoint.sh          # migrate → seed → ingest → gunicorn
 │   ├── requirements.txt
 │   ├── .env.example
 │   └── run.py
@@ -45,7 +51,7 @@ edutrack-ai/
     ├── src/
     │   ├── components/
     │   │   ├── Auth/                 # 登入／註冊 + 路由守衛
-    │   │   ├── common/               # ChatPanel / MathText (KaTeX) 共用元件
+    │   │   ├── common/               # ChatPanel / MarkdownMath (Markdown+KaTeX) 共用元件
     │   │   ├── ChatBot/              # SSE 串流 RAG 聊天
     │   │   ├── ClassicalChinese/     # 文言文雙欄對照 + AI 導師
     │   │   ├── MathHint/             # 數學 Method Marks 步驟引導
@@ -166,6 +172,7 @@ docker compose up --build -d       # 背景重建並啟動
 | POST | `/api/quiz/submit` | 提交測驗答案 |
 | GET | `/api/quiz/attempt/<id>/results` | 測驗成績明細 |
 | GET | `/api/analytics/report` | 弱項分析報告 |
+| GET | `/api/analytics/trend` | 每週平均分趨勢 |
 | GET | `/api/flashcards/due` | 今日待複習記憶卡 |
 | POST | `/api/flashcards/review` | SM-2 複習評分 |
 | POST | `/api/flashcards/generate-from-mistakes` | 由錯題生成記憶卡 |
@@ -192,6 +199,41 @@ LLM_MODEL=deepseek-flash-free
 ```
 
 若改用原生 Anthropic：設 `LLM_PROVIDER=anthropic` 並填 `ANTHROPIC_API_KEY`。
+
+## 課程教材（RAG）Ingestion
+
+把 syllabus / past paper / 筆記放入 `backend/data/materials/<subject>/<source_type>/`，詳見該目錄的 `README.md`。
+
+```powershell
+cd backend ; .\venv\Scripts\activate
+python scripts\ingest_documents.py                 # 全部
+python scripts\ingest_documents.py --subject math  # 單科
+python scripts\ingest_documents.py --reset         # 清空後重入
+python scripts\inspect_chroma.py --source-type past_papers
+python scripts\inspect_chroma.py --search "判別式"
+```
+- 支援 `.pdf` / `.txt` / `.md`；掃描版 PDF 需先 OCR。
+- 可用 `<檔名>.pdf.meta.yml` 逐檔覆寫 metadata（`year`、`paper`、`knowledge_point_code`…）。
+- Docker 啟動時會自動執行 `--if-empty`（首次入，之後略過）。
+
+## 合成測驗資料（Data-Driven Weakness Analysis）
+
+```powershell
+python scripts\seed_attempts.py            # 20 學生 × 10 測驗（1000 明細）
+python scripts\seed_attempts.py --reset    # 先清除 demo 資料
+```
+- 產生 `demo1@demo.local` … `demo20@demo.local`（密碼 `demo12345`），分佈於過去 8 週。
+- 用嚟展示弱項雷達圖、推薦與週趨勢（`/api/analytics/trend`）。
+
+## 測試
+
+```powershell
+cd backend ; .\venv\Scripts\activate
+python -m pytest        # 15 tests：SM-2 / chunking / analytics
+```
+
+## 前端渲染
+LLM 輸出經 `MarkdownMath`（react-markdown + remark-math + rehype-katex）渲染，支援 Markdown 與 KaTeX；`normalizeMath()` 會把 `\(...\)`、`\[...\]` 正規化並包裹裸 LaTeX。
 
 ---
 

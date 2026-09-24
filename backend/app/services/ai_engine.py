@@ -7,6 +7,7 @@ from typing import Generator
 
 from app.services.chroma_store import ChromaVectorStore, RetrievalResult
 from app.services.llm_client import LLMClient
+from app.services.prompt_rules import LATEX_FORMAT_RULE
 
 logger = logging.getLogger(__name__)
 
@@ -18,8 +19,8 @@ DSE_TUTOR_SYSTEM_PROMPT = """你是一位溫柔、引導式的香港 DSE 補習�
 3. 數學題禁止直接給出完整答案，應以步驟提示（Hints）引導學生思考。
 4. 文言文解釋須對照原文，說明字詞義、修辭手法及考核重點。
 5. 使用繁體中文（香港用語），語氣親切但專業。
-6. 數學公式使用 LaTeX 格式（$...$ 或 $$...$$）。
-"""
+6. 可用 Markdown 排版（清單、粗體、標題）令答案易讀。
+""" + LATEX_FORMAT_RULE
 
 
 class AIEngine:
