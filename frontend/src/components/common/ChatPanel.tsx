@@ -31,6 +31,27 @@ interface ChatPanelProps {
   className?: string;
 }
 
+const HISTORY_LIMIT = 12;
+const HISTORY_CHARS = 800;
+
+function toHistory(
+  messages: ChatMessage[]
+): { role: "user" | "assistant"; content: string }[] {
+  return messages
+    .filter(
+      (m) =>
+        (m.role === "user" || m.role === "assistant") &&
+        m.content.trim().length > 0 &&
+        !m.isStreaming &&
+        !m.content.startsWith("無法取得回覆")
+    )
+    .slice(-HISTORY_LIMIT)
+    .map((m) => ({
+      role: m.role,
+      content: m.content.trim().slice(0, HISTORY_CHARS),
+    }));
+}
+
 const SUBJECTS = [
   { value: "", label: "全部" },
   { value: "chinese", label: "中文" },
@@ -114,6 +135,7 @@ const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(function ChatPanel
       const query = raw.trim();
       if (!query || isLoading) return;
 
+      const history = toHistory(messages);
       const assistantId = `${Date.now()}-a`;
       setMessages((prev) => [
         ...prev,
@@ -126,7 +148,7 @@ const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(function ChatPanel
       try {
         const response = await apiRequest("/api/chat/stream", {
           method: "POST",
-          body: { query, subject: activeSubject || undefined },
+          body: { query, subject: activeSubject || undefined, history },
         });
 
         if (!response.ok) {
@@ -191,7 +213,7 @@ const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(function ChatPanel
         inputRef.current?.focus();
       }
     },
-    [activeSubject, isLoading]
+    [activeSubject, isLoading, messages]
   );
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -230,6 +252,9 @@ const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(function ChatPanel
               {emptyTitle}
             </h3>
             <p className="max-w-sm text-sm text-zinc-500">{emptyHint}</p>
+            <p className="mt-2 max-w-sm text-xs text-zinc-600">
+              會參考你的弱項、近期錯題同待複習記憶卡。重新整理後這段對話不會保留。
+            </p>
             {suggestions.length > 0 && (
               <div className="mt-4 flex flex-wrap justify-center gap-2">
                 {suggestions.map((s) => (

@@ -8,6 +8,7 @@ from typing import Generator
 from app.services.chroma_store import ChromaVectorStore, RetrievalResult
 from app.services.llm_client import LLMClient
 from app.services.prompt_rules import LATEX_FORMAT_RULE
+from app.services.student_context import append_student_context, normalize_history
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +79,8 @@ class AIEngine:
         self,
         user_query: str,
         subject: str | None = None,
+        history: list | None = None,
+        student_context: str | None = None,
     ) -> Generator[str, None, None]:
         """Stream RAG-augmented tutor response via SSE-compatible chunks."""
         if not self.llm.available:
@@ -87,11 +90,18 @@ class AIEngine:
         user_message, _ = self.build_rag_prompt(user_query, subject)
         yield from self.llm.stream(
             user_message,
-            system=DSE_TUTOR_SYSTEM_PROMPT,
+            system=append_student_context(DSE_TUTOR_SYSTEM_PROMPT, student_context),
             max_tokens=4096,
+            history=normalize_history(history),
         )
 
-    def chat(self, user_query: str, subject: str | None = None) -> dict:
+    def chat(
+        self,
+        user_query: str,
+        subject: str | None = None,
+        history: list | None = None,
+        student_context: str | None = None,
+    ) -> dict:
         """Non-streaming RAG chat — returns answer + source citations."""
         if not self.llm.available:
             return {"error": "LLM API key not configured", "sources": []}
@@ -99,8 +109,9 @@ class AIEngine:
         user_message, chunks = self.build_rag_prompt(user_query, subject)
         answer = self.llm.complete(
             user_message,
-            system=DSE_TUTOR_SYSTEM_PROMPT,
+            system=append_student_context(DSE_TUTOR_SYSTEM_PROMPT, student_context),
             max_tokens=4096,
+            history=normalize_history(history),
         )
 
         return {

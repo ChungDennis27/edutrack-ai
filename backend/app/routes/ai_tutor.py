@@ -2,7 +2,7 @@
 import json
 
 from flask import Blueprint, Response, current_app, jsonify, request, stream_with_context
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from app.services.ai_engine import AIEngine
 from app.services.chroma_store import init_chroma_store
@@ -10,6 +10,7 @@ from app.services.classical_texts import list_classical_texts
 from app.services.essay_grading import EssayGradingService
 from app.services.llm_client import build_llm_client
 from app.services.math_hint import MathHintService
+from app.services.student_context import build_student_context
 
 ai_tutor_bp = Blueprint("ai_tutor", __name__)
 
@@ -32,19 +33,43 @@ def _get_math_hint_service() -> MathHintService:
     return MathHintService(llm=build_llm_client(current_app.config))
 
 
+def _chat_payload() -> tuple[str, str | None, list]:
+    data = request.get_json(silent=True) or {}
+    query = data.get("query", "")
+    query = query.strip() if isinstance(query, str) else ""
+    subject = data.get("subject")
+    subject = subject.strip() if isinstance(subject, str) and subject.strip() else None
+    history = data.get("history") or []
+    if not isinstance(history, list):
+        history = []
+    return query, subject, history
+
+
+def _student_context() -> str:
+    """L2 brief for the logged-in student. Empty string if identity or DB fails."""
+    try:
+        user_id = int(get_jwt_identity())
+    except (TypeError, ValueError):
+        return ""
+    return build_student_context(user_id)
+
+
 @ai_tutor_bp.route("/query", methods=["POST"])
 @jwt_required()
 def chat_query():
     """Non-streaming RAG chat endpoint."""
-    data = request.get_json(silent=True) or {}
-    query = data.get("query", "").strip()
-    subject = data.get("subject")  # chinese | math | english
+    query, subject, history = _chat_payload()
 
     if not query:
         return jsonify({"error": "query is required"}), 400
 
     engine = _get_engine()
-    result = engine.chat(query, subject)
+    result = engine.chat(
+        query,
+        subject,
+        history=history,
+        student_context=_student_context(),
+    )
     return jsonify(result)
 
 
@@ -52,18 +77,22 @@ def chat_query():
 @jwt_required()
 def chat_stream():
     """SSE streaming RAG chat endpoint."""
-    data = request.get_json(silent=True) or {}
-    query = data.get("query", "").strip()
-    subject = data.get("subject")
+    query, subject, history = _chat_payload()
 
     if not query:
         return jsonify({"error": "query is required"}), 400
 
     engine = _get_engine()
+    student_context = _student_context()
 
     @stream_with_context
     def generate():
-        for chunk in engine.chat_stream(query, subject):
+        for chunk in engine.chat_stream(
+            query,
+            subject,
+            history=history,
+            student_context=student_context,
+        ):
             yield f"data: {json.dumps({'text': chunk}, ensure_ascii=False)}\n\n"
         yield "data: [DONE]\n\n"
 

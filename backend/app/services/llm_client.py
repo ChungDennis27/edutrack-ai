@@ -77,11 +77,30 @@ class LLMClient:
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _build_messages(self, system: str | None, user: str) -> list[dict]:
+    def _dialog(self, history: list[dict] | None, user: str) -> list[dict]:
+        """Prior turns plus the current user message. System is added separately."""
+        messages: list[dict] = []
+        for item in history or []:
+            if not isinstance(item, dict):
+                continue
+            role = item.get("role")
+            content = item.get("content")
+            if role not in ("user", "assistant") or not isinstance(content, str) or not content:
+                continue
+            messages.append({"role": role, "content": content})
+        messages.append({"role": "user", "content": user})
+        return messages
+
+    def _build_messages(
+        self,
+        system: str | None,
+        user: str,
+        history: list[dict] | None = None,
+    ) -> list[dict]:
         messages: list[dict] = []
         if system:
             messages.append({"role": "system", "content": system})
-        messages.append({"role": "user", "content": user})
+        messages.extend(self._dialog(history, user))
         return messages
 
     def complete(
@@ -91,10 +110,13 @@ class LLMClient:
         max_tokens: int = 2048,
         temperature: float = 0.7,
         json_mode: bool = False,
+        history: list[dict] | None = None,
     ) -> str:
         """Single-shot completion, returns the raw text response."""
         if not self._client:
             raise LLMNotConfigured("LLM API key not configured")
+
+        dialog = self._dialog(history, user)
 
         if self.provider == "anthropic":
             resp = self._client.messages.create(
@@ -102,13 +124,13 @@ class LLMClient:
                 max_tokens=max_tokens,
                 temperature=temperature,
                 system=system or "",
-                messages=[{"role": "user", "content": user}],
+                messages=dialog,
             )
             return resp.content[0].text
 
         kwargs: dict = {
             "model": self.model,
-            "messages": self._build_messages(system, user),
+            "messages": self._build_messages(system, user, history),
             "max_tokens": max_tokens,
             "temperature": temperature,
         }
@@ -130,10 +152,13 @@ class LLMClient:
         system: str | None = None,
         max_tokens: int = 2048,
         temperature: float = 0.7,
+        history: list[dict] | None = None,
     ) -> Iterator[str]:
         """Yield text deltas from a streaming completion."""
         if not self._client:
             raise LLMNotConfigured("LLM API key not configured")
+
+        dialog = self._dialog(history, user)
 
         if self.provider == "anthropic":
             with self._client.messages.stream(
@@ -141,7 +166,7 @@ class LLMClient:
                 max_tokens=max_tokens,
                 temperature=temperature,
                 system=system or "",
-                messages=[{"role": "user", "content": user}],
+                messages=dialog,
             ) as stream:
                 for text in stream.text_stream:
                     yield text
@@ -149,7 +174,7 @@ class LLMClient:
 
         stream = self._client.chat.completions.create(
             model=self.model,
-            messages=self._build_messages(system, user),
+            messages=self._build_messages(system, user, history),
             max_tokens=max_tokens,
             temperature=temperature,
             stream=True,
