@@ -5,7 +5,7 @@ import logging
 from dataclasses import dataclass, field
 
 from app.services.llm_client import LLMClient, extract_json
-from app.services.prompt_rules import LATEX_FORMAT_RULE
+from app.services.prompt_rules import PLAIN_MATH_RULE
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +13,7 @@ QUIZ_SYSTEM_PROMPT = """你是一位香港 DSE 出卷專家。你的任務是根
 
 嚴格規則：
 1. 必須以 JSON 格式輸出，不得包含任何 markdown 代碼塊標記（如 ```json）。
-2. 數學公式必須使用 LaTeX 格式（行內用 $...$，獨立公式用 $$...$$）。
+2. 數學式必須用普通文字，不要用 LaTeX。例如 x² − 5x + 6 = 0，或 x = (−b ± √(b² − 4ac)) / (2a)。禁止 $、$$ 和反斜線指令。
 3. 選項必須有 4 個（A/B/C/D），只有一個正確答案。
 4. 難度對應：level_3 = 基礎（合格率附近），level_4 = 中等，level_5 = 挑戰（**級），level_5pp = 頂尖（5**級）。
 5. 每題必須包含詳細解析，說明考核重點和常見錯誤。
@@ -28,7 +28,7 @@ QUIZ_SYSTEM_PROMPT = """你是一位香港 DSE 出卷專家。你的任務是根
     {
       "index": 1,
       "question_type": "mc",
-      "stem": "題目內容（可含 LaTeX）",
+      "stem": "題目內容（普通文字，不要 LaTeX）",
       "options": {"A": "...", "B": "...", "C": "...", "D": "..."},
       "correct_answer": "A",
       "explanation": "詳細解析",
@@ -37,7 +37,7 @@ QUIZ_SYSTEM_PROMPT = """你是一位香港 DSE 出卷專家。你的任務是根
     }
   ]
 }
-""" + LATEX_FORMAT_RULE
+""" + PLAIN_MATH_RULE
 
 
 @dataclass

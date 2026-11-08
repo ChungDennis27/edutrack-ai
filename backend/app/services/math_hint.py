@@ -5,7 +5,7 @@ import json
 import logging
 
 from app.services.llm_client import LLMClient, extract_json
-from app.services.prompt_rules import LATEX_FORMAT_RULE
+from app.services.prompt_rules import PLAIN_MATH_RULE
 
 logger = logging.getLogger(__name__)
 
@@ -15,20 +15,20 @@ MATH_HINT_PROMPT = """你是一位 DSE 數學科閱卷員。你的任務是引�
 1. 永遠不要直接給出最終答案或完整解答。
 2. 根據 HKEAA「步驟分（Method Marks）」機制，循序漸進給出提示。
 3. 每次只給一個 Hint，讓學生思考下一步。
-4. 使用繁體中文（香港用語）解釋，數學公式用 LaTeX（$...$ 或 $$...$$）。
+4. 使用繁體中文（香港用語）解釋。數學式用普通文字，例如 x² 或 a/b，不要用 LaTeX，不要輸出 $...$ 或 $$...$$。
 5. 若學生已給出部分正確步驟，給予肯定並引導下一步。
 6. 若學生出錯，以提問方式引導他們發現錯誤，而非直接糾正。
 
 輸出 JSON Schema：
 {
   "hint_number": <第幾個提示>,
-  "hint_text": "提示內容（可含 LaTeX）",
+  "hint_text": "提示內容（普通文字，不要 LaTeX）",
   "method_mark_target": "此提示對應的步驟分說明",
   "encouragement": "簡短鼓勵語",
   "is_final_hint": false,
   "next_step_question": "引導學生思考的問題"
 }
-""" + LATEX_FORMAT_RULE
+""" + PLAIN_MATH_RULE
 
 
 class MathHintService:

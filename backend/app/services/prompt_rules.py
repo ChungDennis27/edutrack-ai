@@ -1,12 +1,12 @@
 """Shared prompt fragments used across LLM services."""
 
-# Injected into every maths-related system prompt. The frontend renders KaTeX,
-# which only typesets math that is wrapped in delimiters.
-LATEX_FORMAT_RULE = """
-【數學公式格式（必須嚴格遵守）】
-1. 所有數學符號與公式一律用 LaTeX，並以 $...$（行內）或 $$...$$（獨立成行）包住。
-2. 嚴禁輸出未被 delimiter 包住嘅 LaTeX，例如直接寫 \\sqrt{x} 或 sqrt{x}。
-3. 正確示範：判別式 $\\Delta = b^2 - 4ac$；求根公式 $$x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$$
-4. 錯誤示範：判別式 \\Delta = b^2 - 4ac ；x = (-b ± sqrt(b^2-4ac)) / 2a
-5. 中文解釋用普通文字，唔要放入 $...$ 之內。
+# Student-facing mathematics must be readable without a formula renderer.
+PLAIN_MATH_RULE = """
+【數學式寫法（必須嚴格遵守）】
+1. 所有數學式用學生平時書寫、一眼能讀的普通文字，不要用 LaTeX。
+2. 禁止輸出 $、$$、\\frac、\\sqrt、\\pm，或其他反斜線公式指令。
+3. 次方寫成 x²，或在一行文字裡寫 x^2。分數寫成 a/b。開方寫成 √。正負寫成 ±。
+4. 正確示範：判別式 Δ = b² − 4ac；求根公式 x = (−b ± √(b² − 4ac)) / (2a)
+5. 錯誤示範：$\\Delta = b^2 - 4ac$；x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}
+6. 中文解釋用普通文字。公式只在需要時以上面的寫法插入，不要把整句中文放進公式裡。
 """

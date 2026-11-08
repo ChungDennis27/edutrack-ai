@@ -82,11 +82,11 @@ export default function MathHint() {
         {/* Inputs */}
         <section className="glass-card space-y-4 p-6 lg:sticky lg:top-24 lg:self-start">
           <div>
-            <label className="mb-2 block text-sm text-zinc-400">題目（支援 LaTeX）</label>
+            <label className="mb-2 block text-sm text-zinc-400">題目</label>
             <textarea
               value={problem}
               onChange={(e) => setProblem(e.target.value)}
-              placeholder="例如：解方程 $x^2 - 5x + 6 = 0$，並求兩根之和。"
+              placeholder="例如：解方程 x^2 - 5x + 6 = 0，並求兩根之和。"
               rows={4}
               className="w-full resize-y rounded-xl border border-white/10 bg-surface-card px-4 py-3 text-sm text-zinc-100 placeholder-zinc-600 outline-none transition-colors focus:border-primary-500/50 focus:ring-1 focus:ring-primary-500/20"
             />

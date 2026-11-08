@@ -20,7 +20,7 @@ edutrack-ai/
 │   │   │   └── analytics.py          # 弱項分析報告
 │   │   ├── services/
 │   │   │   ├── llm_client.py         # Provider 無關 LLM 層（OpenAI 相容 / Anthropic）
-│   │   │   ├── prompt_rules.py       # 共用 prompt 規則（LaTeX 格式）
+│   │   │   ├── prompt_rules.py       # 共用 prompt 規則（數學式用普通文字）
 │   │   │   ├── chroma_store.py       # ChromaDB 初始化 + RAG 檢索
 │   │   │   ├── document_ingest.py    # PDF/TXT/MD → 清理 → chunk → metadata
 │   │   │   ├── classical_texts.py    # 12 指定 + 8 建議文言文（20 篇章）
@@ -233,7 +233,7 @@ python -m pytest        # 15 tests：SM-2 / chunking / analytics
 ```
 
 ## 前端渲染
-LLM 輸出經 `MarkdownMath`（react-markdown + remark-math + rehype-katex）渲染，支援 Markdown 與 KaTeX；`normalizeMath()` 會把 `\(...\)`、`\[...\]` 正規化並包裹裸 LaTeX。
+數學提示、測驗和導師回覆都要求用普通文字寫公式（例如 x² 或 a/b），不要輸出 LaTeX。頁面仍可用 Markdown 顯示清單和粗體。若模型偶爾仍輸出 `$...$`，`MarkdownMath` 會嘗試排版，但提示詞不再要求這樣做。
 
 ---
 
