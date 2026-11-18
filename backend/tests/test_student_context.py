@@ -46,6 +46,7 @@ def test_append_student_context_skips_blank_and_keeps_rules():
     merged = append_student_context("BASE", "弱項：代數")
     assert merged.startswith("BASE\n")
     assert "弱項：代數" in merged
+    assert "必須直接根據呢段背景回答" in merged
     assert merged.index("BASE") < merged.index("弱項：代數")
 
 

@@ -48,24 +48,44 @@ class RecordingEngine:
         self.chat_calls = []
         self.stream_calls = []
 
-    def chat(self, query, subject=None, history=None, student_context=None):
+    def chat(
+        self,
+        query,
+        subject=None,
+        history=None,
+        student_context=None,
+        scope=None,
+        user_id=None,
+    ):
         self.chat_calls.append(
             {
                 "query": query,
                 "subject": subject,
                 "history": history,
                 "student_context": student_context,
+                "scope": scope,
+                "user_id": user_id,
             }
         )
         return {"answer": "ok", "sources": []}
 
-    def chat_stream(self, query, subject=None, history=None, student_context=None):
+    def chat_stream(
+        self,
+        query,
+        subject=None,
+        history=None,
+        student_context=None,
+        scope=None,
+        user_id=None,
+    ):
         self.stream_calls.append(
             {
                 "query": query,
                 "subject": subject,
                 "history": history,
                 "student_context": student_context,
+                "scope": scope,
+                "user_id": user_id,
             }
         )
         yield from STREAM_CHUNKS
@@ -317,3 +337,31 @@ def test_user_with_no_records_gets_empty_context_and_200(
     assert response.get_json()["answer"] == "ok"
     assert len(patched_engine.chat_calls) == 1
     assert patched_engine.chat_calls[0]["student_context"] == ""
+    assert patched_engine.chat_calls[0]["scope"] == "dse"
+    assert patched_engine.chat_calls[0]["user_id"] == users["c"]["id"]
+
+
+def test_scope_comes_from_body_but_user_id_comes_from_jwt(client, users, patched_engine):
+    headers = _login(client, users["a"]["email"], users["a"]["password"])
+    response = client.post(
+        "/api/chat/query",
+        json={
+            "query": "我份筆記點講",
+            "scope": "my_docs",
+            "user_id": users["b"]["id"],
+        },
+        headers=headers,
+    )
+    assert response.status_code == 200
+    call = patched_engine.chat_calls[0]
+    assert call["scope"] == "my_docs"
+    assert call["user_id"] == users["a"]["id"]
+    assert call["user_id"] != users["b"]["id"]
+
+    client.post(
+        "/api/chat/stream",
+        json={"query": "再講", "scope": "someone_else"},
+        headers=headers,
+    )
+    assert patched_engine.stream_calls[0]["scope"] == "dse"
+    assert patched_engine.stream_calls[0]["user_id"] == users["a"]["id"]

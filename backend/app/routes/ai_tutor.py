@@ -10,6 +10,7 @@ from app.services.classical_texts import list_classical_texts
 from app.services.essay_grading import EssayGradingService
 from app.services.llm_client import build_llm_client
 from app.services.math_hint import MathHintService
+from app.services.retrieval_scope import normalize_scope
 from app.services.student_context import build_student_context
 
 ai_tutor_bp = Blueprint("ai_tutor", __name__)
@@ -33,7 +34,7 @@ def _get_math_hint_service() -> MathHintService:
     return MathHintService(llm=build_llm_client(current_app.config))
 
 
-def _chat_payload() -> tuple[str, str | None, list]:
+def _chat_payload() -> tuple[str, str | None, list, str]:
     data = request.get_json(silent=True) or {}
     query = data.get("query", "")
     query = query.strip() if isinstance(query, str) else ""
@@ -42,14 +43,22 @@ def _chat_payload() -> tuple[str, str | None, list]:
     history = data.get("history") or []
     if not isinstance(history, list):
         history = []
-    return query, subject, history
+    # user_id is never taken from the body. Scope falls back to DSE if unknown.
+    scope = normalize_scope(data.get("scope") if isinstance(data.get("scope"), str) else None)
+    return query, subject, history, scope
+
+
+def _user_id() -> int | None:
+    try:
+        return int(get_jwt_identity())
+    except (TypeError, ValueError):
+        return None
 
 
 def _student_context() -> str:
     """L2 brief for the logged-in student. Empty string if identity or DB fails."""
-    try:
-        user_id = int(get_jwt_identity())
-    except (TypeError, ValueError):
+    user_id = _user_id()
+    if user_id is None:
         return ""
     return build_student_context(user_id)
 
@@ -58,7 +67,7 @@ def _student_context() -> str:
 @jwt_required()
 def chat_query():
     """Non-streaming RAG chat endpoint."""
-    query, subject, history = _chat_payload()
+    query, subject, history, scope = _chat_payload()
 
     if not query:
         return jsonify({"error": "query is required"}), 400
@@ -69,6 +78,8 @@ def chat_query():
         subject,
         history=history,
         student_context=_student_context(),
+        scope=scope,
+        user_id=_user_id(),
     )
     return jsonify(result)
 
@@ -77,13 +88,14 @@ def chat_query():
 @jwt_required()
 def chat_stream():
     """SSE streaming RAG chat endpoint."""
-    query, subject, history = _chat_payload()
+    query, subject, history, scope = _chat_payload()
 
     if not query:
         return jsonify({"error": "query is required"}), 400
 
     engine = _get_engine()
     student_context = _student_context()
+    user_id = _user_id()
 
     @stream_with_context
     def generate():
@@ -92,6 +104,8 @@ def chat_stream():
             subject,
             history=history,
             student_context=student_context,
+            scope=scope,
+            user_id=user_id,
         ):
             yield f"data: {json.dumps({'text': chunk}, ensure_ascii=False)}\n\n"
         yield "data: [DONE]\n\n"

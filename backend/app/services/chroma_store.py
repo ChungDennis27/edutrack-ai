@@ -12,6 +12,8 @@ import chromadb
 from chromadb.config import Settings
 from chromadb.utils import embedding_functions
 
+from app.services.retrieval_scope import PERSONAL_ORIGIN, is_personal, visible_to
+
 logger = logging.getLogger(__name__)
 
 
@@ -48,10 +50,12 @@ class ChromaVectorStore:
         persist_dir: str,
         collection_name: str = "dse_knowledge_base",
         embedding_model: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+        user_collection_name: str = "user_knowledge_base",
     ):
         self.persist_dir = Path(persist_dir)
         self.persist_dir.mkdir(parents=True, exist_ok=True)
         self.collection_name = collection_name
+        self.user_collection_name = user_collection_name
 
         self._client = chromadb.PersistentClient(
             path=str(self.persist_dir),
@@ -62,6 +66,12 @@ class ChromaVectorStore:
         )
         self._collection = self._client.get_or_create_collection(
             name=collection_name,
+            embedding_function=self._embedding_fn,
+            metadata={"hnsw:space": "cosine"},
+        )
+        # Separate collection so a private note cannot crowd out, or leak into, DSE search.
+        self._user_collection = self._client.get_or_create_collection(
+            name=user_collection_name,
             embedding_function=self._embedding_fn,
             metadata={"hnsw:space": "cosine"},
         )
@@ -176,54 +186,79 @@ class ChromaVectorStore:
     # Write / Read
     # ------------------------------------------------------------------
 
-    def upsert_chunks(self, chunks: list[DocumentChunk], batch_size: int = 50) -> int:
-        """Insert or update document chunks into ChromaDB."""
+    @staticmethod
+    def _where_clause(filters: list[dict[str, Any]]) -> dict[str, Any] | None:
+        if not filters:
+            return None
+        if len(filters) == 1:
+            return filters[0]
+        return {"$and": filters}
+
+    def _upsert(self, collection, collection_name: str, chunks: list[DocumentChunk], batch_size: int) -> int:
         if not chunks:
             return 0
-
         total = 0
         for i in range(0, len(chunks), batch_size):
             batch = chunks[i : i + batch_size]
-            self._collection.upsert(
+            collection.upsert(
                 ids=[c.id for c in batch],
                 documents=[c.text for c in batch],
                 metadatas=[c.metadata for c in batch],
             )
             total += len(batch)
-
-        logger.info("Upserted %d chunks into '%s'", total, self.collection_name)
+        logger.info("Upserted %d chunks into '%s'", total, collection_name)
         return total
 
-    def query(
-        self,
-        query_text: str,
-        top_k: int = 5,
-        subject_filter: str | None = None,
-        content_type_filter: str | None = None,
-        similarity_threshold: float = 0.65,
-    ) -> list[RetrievalResult]:
-        """
-        Semantic search with optional metadata filtering.
-        Returns chunks above similarity_threshold (cosine relevance).
-        """
-        where: dict[str, Any] | None = None
-        filters = []
-        if subject_filter:
-            filters.append({"subject": subject_filter})
-        if content_type_filter:
-            filters.append({"content_type": content_type_filter})
-        if len(filters) == 1:
-            where = filters[0]
-        elif len(filters) > 1:
-            where = {"$and": filters}
+    def upsert_chunks(self, chunks: list[DocumentChunk], batch_size: int = 50) -> int:
+        """Insert or update DSE document chunks into ChromaDB."""
+        return self._upsert(self._collection, self.collection_name, chunks, batch_size)
 
-        results = self._collection.query(
+    def upsert_user_chunks(
+        self,
+        chunks: list[DocumentChunk],
+        user_id: str | int,
+        batch_size: int = 50,
+    ) -> int:
+        """Insert private notes. Refuses a chunk that is not tagged for this student."""
+        owner = str(user_id)
+        safe: list[DocumentChunk] = []
+        for chunk in chunks:
+            meta = dict(chunk.metadata)
+            if str(meta.get("user_id") or "") != owner or meta.get("origin") != PERSONAL_ORIGIN:
+                raise ValueError("user chunk is missing a matching user_id")
+            meta["user_id"] = owner
+            meta["origin"] = PERSONAL_ORIGIN
+            safe.append(DocumentChunk(id=chunk.id, text=chunk.text, metadata=meta))
+        return self._upsert(self._user_collection, self.user_collection_name, safe, batch_size)
+
+    def _search(
+        self,
+        collection,
+        query_text: str,
+        n_results: int,
+        where: dict[str, Any] | None,
+        similarity_threshold: float,
+    ) -> list[RetrievalResult]:
+        if n_results <= 0 or not query_text.strip():
+            return []
+        try:
+            available = (
+                collection.count()
+                if where is None
+                else len(collection.get(where=where, include=[])["ids"])
+            )
+        except Exception:
+            logger.exception("Chroma count failed")
+            raise
+        if available <= 0:
+            return []
+
+        results = collection.query(
             query_texts=[query_text],
-            n_results=top_k,
+            n_results=min(n_results, available),
             where=where,
             include=["documents", "metadatas", "distances"],
         )
-
         retrieved: list[RetrievalResult] = []
         if not results["ids"] or not results["ids"][0]:
             return retrieved
@@ -247,6 +282,70 @@ class ChromaVectorStore:
                 )
         return retrieved
 
+    def query(
+        self,
+        query_text: str,
+        top_k: int = 5,
+        subject_filter: str | None = None,
+        content_type_filter: str | None = None,
+        similarity_threshold: float = 0.65,
+    ) -> list[RetrievalResult]:
+        """
+        Semantic search over the shared DSE collection.
+        Personal notes are stored separately and dropped here if one ever lands in this collection.
+        """
+        filters = []
+        if subject_filter:
+            filters.append({"subject": subject_filter})
+        if content_type_filter:
+            filters.append({"content_type": content_type_filter})
+        hits = self._search(
+            self._collection,
+            query_text,
+            top_k,
+            self._where_clause(filters),
+            similarity_threshold,
+        )
+        return [hit for hit in hits if not is_personal(hit.metadata)]
+
+    def query_user_docs(
+        self,
+        query_text: str,
+        user_id: str | int,
+        top_k: int = 5,
+        subject_filter: str | None = None,
+        similarity_threshold: float = 0.65,
+    ) -> list[RetrievalResult]:
+        """Search one student's notes. The where-clause and a post-filter both require user_id."""
+        owner = str(user_id)
+        filters = [{"origin": PERSONAL_ORIGIN}, {"user_id": owner}]
+        if subject_filter:
+            filters.append({"subject": subject_filter})
+        hits = self._search(
+            self._user_collection,
+            query_text,
+            top_k,
+            self._where_clause(filters),
+            similarity_threshold,
+        )
+        return [hit for hit in hits if visible_to(hit.metadata, "my_docs", owner)]
+
+    def delete_user_document(self, user_id: str | int, document_id: str | int) -> None:
+        """Delete one student's chunks for one file. No-op when none match."""
+        where = {
+            "$and": [
+                {"origin": PERSONAL_ORIGIN},
+                {"user_id": str(user_id)},
+                {"document_id": str(document_id)},
+            ]
+        }
+        if self._user_collection.count() == 0:
+            return
+        matched = self._user_collection.get(where=where, include=[])
+        if not matched["ids"]:
+            return
+        self._user_collection.delete(where=where)
+
     def count_where(self, where: dict[str, Any]) -> int:
         """Count chunks matching a metadata filter."""
         result = self._collection.get(where=where, include=[])
@@ -267,6 +366,7 @@ def init_chroma_store(app_config) -> ChromaVectorStore:
         persist_dir=app_config["CHROMA_PERSIST_DIR"],
         collection_name=app_config["CHROMA_COLLECTION_NAME"],
         embedding_model=app_config["EMBEDDING_MODEL"],
+        user_collection_name=app_config.get("CHROMA_USER_COLLECTION_NAME", "user_knowledge_base"),
     )
 
 

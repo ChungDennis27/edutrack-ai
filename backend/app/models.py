@@ -53,6 +53,9 @@ class User(db.Model):
     topic_mastery_records: Mapped[list["TopicMastery"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
+    documents: Mapped[list["UserDocument"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
 
     def set_password(self, password: str) -> None:
         self.password_hash = bcrypt.hashpw(
@@ -294,3 +297,39 @@ class FlashcardReview(db.Model):
     __table_args__ = (
         CheckConstraint("quality >= 0 AND quality <= 5", name="ck_flashcard_reviews_quality"),
     )
+
+
+class UserDocument(db.Model):
+    """A student-uploaded note. Vectors live in Chroma, bytes live on disk."""
+
+    __tablename__ = "user_documents"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    original_filename: Mapped[str] = mapped_column(String(255), nullable=False)
+    stored_name: Mapped[str] = mapped_column(String(80), nullable=False)
+    subject: Mapped[str] = mapped_column(String(20), nullable=False, default="general")
+    size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="processing")
+    chunk_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    error_message: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    user: Mapped["User"] = relationship(back_populates="documents")
+
+    __table_args__ = (
+        CheckConstraint("size_bytes >= 0", name="ck_user_documents_size_nonneg"),
+        Index("ix_user_documents_user_created", "user_id", "created_at"),
+    )
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "filename": self.original_filename,
+            "subject": self.subject,
+            "size_bytes": self.size_bytes,
+            "status": self.status,
+            "chunk_count": self.chunk_count,
+            "error": self.error_message,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }

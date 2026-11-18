@@ -20,6 +20,7 @@ npm-debug.log*
 
 # --- Runtime data ---
 backend/app/data/chroma_store/
+backend/data/uploads/
 
 # --- OS / editors ---
 .DS_Store

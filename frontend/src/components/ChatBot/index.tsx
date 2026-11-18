@@ -5,6 +5,7 @@ export default function ChatBot() {
     <div className="animate-fade-in">
       <ChatPanel
         showSubjectSelector
+        showScopeSelector
         emptyTitle="AI 智能導師"
         emptyHint="歡迎提問任何 DSE 課題問題。數學題會提供步驟提示而非直接答案。"
         suggestions={[

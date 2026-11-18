@@ -17,11 +17,14 @@ edutrack-ai/
 │   │   │   ├── ai_tutor.py           # RAG 串流聊天 (/api/chat)
 │   │   │   ├── quizzes.py            # AI 動態測驗生成
 │   │   │   ├── flashcards.py         # SM-2 間隔重複
-│   │   │   └── analytics.py          # 弱項分析報告
+│   │   │   ├── analytics.py          # 弱項分析報告
+│   │   │   └── uploads.py            # 個人筆記上傳（PDF/TXT/MD）
 │   │   ├── services/
 │   │   │   ├── llm_client.py         # Provider 無關 LLM 層（OpenAI 相容 / Anthropic）
 │   │   │   ├── prompt_rules.py       # 共用 prompt 規則（數學式用普通文字）
 │   │   │   ├── chroma_store.py       # ChromaDB 初始化 + RAG 檢索
+│   │   │   ├── retrieval_scope.py    # dse / my_docs / all 隔離
+│   │   │   ├── user_library.py       # 個人筆記配額、落盤、分塊
 │   │   │   ├── document_ingest.py    # PDF/TXT/MD → 清理 → chunk → metadata
 │   │   │   ├── classical_texts.py    # 12 指定 + 8 建議文言文（20 篇章）
 │   │   │   ├── ai_engine.py          # LLM + RAG 編排
@@ -41,7 +44,7 @@ edutrack-ai/
 │   │   ├── seed_db.py                # 課程科目／課題／知識點（upsert）
 │   │   ├── seed_attempts.py          # 合成測驗資料（弱項分析用）
 │   │   └── wait_for_db.py            # Docker 啟動時等 DB 就緒
-│   ├── tests/                        # pytest（SM-2 / chunking / analytics）
+│   ├── tests/                        # pytest（SM-2 / chunking / analytics / library）
 │   ├── Dockerfile                    # python:3.12-slim + gunicorn
 │   ├── docker-entrypoint.sh          # migrate → seed → ingest → gunicorn
 │   ├── requirements.txt
@@ -52,7 +55,8 @@ edutrack-ai/
     │   ├── components/
     │   │   ├── Auth/                 # 登入／註冊 + 路由守衛
     │   │   ├── common/               # ChatPanel / MarkdownMath (Markdown+KaTeX) 共用元件
-    │   │   ├── ChatBot/              # SSE 串流 RAG 聊天
+    │   │   ├── ChatBot/              # SSE 串流 RAG 聊天（可切 DSE / 我的 / 全部）
+    │   │   ├── Library/              # 個人筆記拖放上傳
     │   │   ├── ClassicalChinese/     # 文言文雙欄對照 + AI 導師
     │   │   ├── MathHint/             # 數學 Method Marks 步驟引導
     │   │   ├── EssayGrader/          # 英文作文批改報告
@@ -163,8 +167,8 @@ docker compose up --build -d       # 背景重建並啟動
 | POST | `/api/auth/login` | 登入 (JWT → httpOnly Cookie) |
 | POST | `/api/auth/logout` | 登出（清除 Cookie） |
 | GET | `/api/auth/me` | 取得目前登入用戶 |
-| POST | `/api/chat/query` | RAG 非串流問答 |
-| POST | `/api/chat/stream` | RAG SSE 串流問答 |
+| POST | `/api/chat/query` | RAG 非串流問答（`scope`: `dse` / `my_docs` / `all`，預設 `dse`） |
+| POST | `/api/chat/stream` | RAG SSE 串流問答（scope 同上） |
 | POST | `/api/chat/grade-essay` | 英文作文批改（HKEAA C/L/O） |
 | POST | `/api/chat/math-hint` | 數學步驟提示（Method Marks） |
 | GET | `/api/quiz/subjects` | 科目／課題清單 |
@@ -176,8 +180,22 @@ docker compose up --build -d       # 背景重建並啟動
 | GET | `/api/flashcards/due` | 今日待複習記憶卡 |
 | POST | `/api/flashcards/review` | SM-2 複習評分 |
 | POST | `/api/flashcards/generate-from-mistakes` | 由錯題生成記憶卡 |
+| GET | `/api/uploads` | 列出自己的筆記同配額 |
+| POST | `/api/uploads` | 上傳 PDF / TXT / MD（multipart，欄位 `file` + `subject`） |
+| DELETE | `/api/uploads/<id>` | 刪除自己的檔案同向量 |
 
 > 認證採 JWT httpOnly Cookie + CSRF double-submit：所有非 GET 請求必須帶 `X-CSRF-TOKEN`（前端已由 `src/lib/api.ts` 自動處理）。
+
+### 個人筆記庫
+
+學生可在 `/library` 上傳自己的 PDF、TXT、MD。配額係 **20 個檔、每個 10MB、合計 50MB**。檔案存在 `backend/data/uploads/<user_id>/`，向量入獨立 collection `user_knowledge_base`，metadata 必須帶 `user_id`。聊天預設仍然只搜 DSE；可切「我的資料」或「全部」。掃描版 PDF 唔會做 OCR。
+
+已有資料庫要先升級 schema：
+
+```bash
+cd backend
+flask --app run.py db upgrade
+```
 
 ## 技術棧
 

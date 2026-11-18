@@ -5,7 +5,9 @@ import {
   useImperativeHandle,
   useRef,
   useState,
+  type KeyboardEvent,
 } from "react";
+import { Link } from "react-router-dom";
 import MarkdownMath from "@/components/common/MarkdownMath";
 import { apiRequest } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -25,6 +27,7 @@ export interface ChatPanelHandle {
 interface ChatPanelProps {
   subject?: string;
   showSubjectSelector?: boolean;
+  showScopeSelector?: boolean;
   emptyTitle?: string;
   emptyHint?: string;
   suggestions?: string[];
@@ -57,6 +60,12 @@ const SUBJECTS = [
   { value: "chinese", label: "中文" },
   { value: "math", label: "數學" },
   { value: "english", label: "英文" },
+];
+
+const SCOPES = [
+  { value: "dse", label: "DSE 課程" },
+  { value: "my_docs", label: "我的資料" },
+  { value: "all", label: "全部" },
 ];
 
 function SkeletonMessage() {
@@ -103,6 +112,7 @@ const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(function ChatPanel
   {
     subject: fixedSubject,
     showSubjectSelector = false,
+    showScopeSelector = false,
     emptyTitle = "AI 智能導師",
     emptyHint = "歡迎提問任何 DSE 課題問題。數學題會提供步驟提示而非直接答案。",
     suggestions = [],
@@ -113,6 +123,7 @@ const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(function ChatPanel
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [subject, setSubject] = useState(fixedSubject ?? "");
+  const [scope, setScope] = useState("dse");
   const [isLoading, setIsLoading] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -148,7 +159,12 @@ const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(function ChatPanel
       try {
         const response = await apiRequest("/api/chat/stream", {
           method: "POST",
-          body: { query, subject: activeSubject || undefined, history },
+          body: {
+            query,
+            subject: activeSubject || undefined,
+            history,
+            ...(showScopeSelector ? { scope } : {}),
+          },
         });
 
         if (!response.ok) {
@@ -213,10 +229,11 @@ const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(function ChatPanel
         inputRef.current?.focus();
       }
     },
-    [activeSubject, isLoading, messages]
+    [activeSubject, isLoading, messages, scope, showScopeSelector]
   );
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.nativeEvent.isComposing || e.key === "Process") return;
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       send(input);
@@ -242,6 +259,29 @@ const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(function ChatPanel
               {opt.label}
             </button>
           ))}
+        </div>
+      )}
+
+      {showScopeSelector && (
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <span className="text-sm text-zinc-400">範圍：</span>
+          {SCOPES.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setScope(opt.value)}
+              className={cn(
+                "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                scope === opt.value
+                  ? "bg-primary-500/20 text-primary-400 ring-1 ring-primary-500/30"
+                  : "bg-surface-elevated text-zinc-400 hover:text-zinc-200"
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+          <Link to="/library" className="text-xs text-zinc-500 underline-offset-2 hover:text-primary-300 hover:underline">
+            管理我的資料
+          </Link>
         </div>
       )}
 

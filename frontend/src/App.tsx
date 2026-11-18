@@ -9,6 +9,7 @@ import EssayGrader from "./components/EssayGrader";
 import MathHint from "./components/MathHint";
 import Quiz from "./components/Quiz";
 import Flashcards from "./components/Flashcard";
+import Library from "./components/Library";
 
 const NAV_ITEMS = [
   { to: "/", label: "首頁" },
@@ -18,6 +19,7 @@ const NAV_ITEMS = [
   { to: "/essay", label: "作文批改" },
   { to: "/quiz", label: "測驗" },
   { to: "/flashcards", label: "記憶卡" },
+  { to: "/library", label: "資料庫" },
   { to: "/dashboard", label: "分析" },
 ];
 
@@ -148,6 +150,12 @@ function HomePage() {
             根據 SM-2 演算法自動排程，錯題自動生成記憶卡
           </p>
         </NavLink>
+        <NavLink to="/library" className="glass-card-hover p-6">
+          <h3 className="mb-2 text-lg font-semibold">個人筆記庫</h3>
+          <p className="text-sm text-zinc-400">
+            上傳自己的 PDF / TXT / MD，導師可切換只搜你的資料
+          </p>
+        </NavLink>
       </section>
     </div>
   );
@@ -214,6 +222,14 @@ export default function App() {
             element={
               <RequireAuth>
                 <EssayGrader />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/library"
+            element={
+              <RequireAuth>
+                <Library />
               </RequireAuth>
             }
           />

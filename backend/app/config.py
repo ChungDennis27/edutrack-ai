@@ -38,7 +38,13 @@ class Config:
         str(BASE_DIR / "data" / "chroma_store"),
     )
     CHROMA_COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME", "dse_knowledge_base")
+    CHROMA_USER_COLLECTION_NAME = os.getenv("CHROMA_USER_COLLECTION_NAME", "user_knowledge_base")
     EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
+
+    # Student uploads. Kept outside the DSE materials folder.
+    UPLOAD_DIR = os.getenv("UPLOAD_DIR", str(BASE_DIR.parent / "data" / "uploads"))
+    # A little above the 10MB per-file cap so multipart overhead still fits.
+    MAX_CONTENT_LENGTH = 12 * 1024 * 1024
 
     # RAG tuning
     RAG_TOP_K = int(os.getenv("RAG_TOP_K", "5"))
