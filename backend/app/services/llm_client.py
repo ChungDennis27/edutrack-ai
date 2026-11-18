@@ -189,10 +189,13 @@ class LLMClient:
 
 
 def build_llm_client(app_config, temperature_note: str | None = None) -> LLMClient:
-    """Factory reading the Flask config mapping."""
+    """Factory. A saved UI override wins over the environment config."""
+    from app.services.llm_settings import effective_llm_config
+
+    chosen = effective_llm_config(app_config)
     return LLMClient(
-        api_key=app_config.get("LLM_API_KEY", ""),
-        model=app_config.get("LLM_MODEL", "deepseek-flash-free"),
-        base_url=app_config.get("LLM_BASE_URL") or None,
-        provider=app_config.get("LLM_PROVIDER", "openai"),
+        api_key=chosen.get("api_key") or "",
+        model=chosen.get("model") or app_config.get("LLM_MODEL", "deepseek-flash-free"),
+        base_url=chosen.get("base_url") or None,
+        provider=chosen.get("provider") or "openai",
     )

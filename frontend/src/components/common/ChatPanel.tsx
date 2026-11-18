@@ -37,6 +37,14 @@ interface ChatPanelProps {
 const HISTORY_LIMIT = 12;
 const HISTORY_CHARS = 800;
 
+function settingsHint(message: string): string {
+  const text = `無法取得回覆：${message}`;
+  if (/api key|unauthorized|401|expired|invalid_api_key|LLM|未設定|中轉/i.test(message)) {
+    return `${text}\n\n[去 AI 設定更換 key 或中轉站](/settings)`;
+  }
+  return text;
+}
+
 function toHistory(
   messages: ChatMessage[]
 ): { role: "user" | "assistant"; content: string }[] {
@@ -211,9 +219,9 @@ const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(function ChatPanel
             m.id === assistantId
               ? {
                   ...m,
-                  content: `無法取得回覆：${
+                  content: settingsHint(
                     err instanceof Error ? err.message : "請稍後再試。"
-                  }`,
+                  ),
                   isStreaming: false,
                 }
               : m

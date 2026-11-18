@@ -36,6 +36,7 @@ services:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/edutrack_ai
       CHROMA_PERSIST_DIR: /data/chroma_store
       UPLOAD_DIR: /data/uploads
+      LLM_SETTINGS_PATH: /data/llm_settings.json
       FRONTEND_ORIGIN: http://localhost:8080
       # Keep "development" so JWT cookies are not marked Secure over plain http.
       FLASK_ENV: development

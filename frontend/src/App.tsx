@@ -11,6 +11,7 @@ import Quiz from "./components/Quiz";
 import Flashcards from "./components/Flashcard";
 import Library from "./components/Library";
 import Lesson from "./components/Lesson";
+import Settings from "./components/Settings";
 
 const NAV_ITEMS = [
   { to: "/", label: "首頁" },
@@ -65,6 +66,12 @@ function Navbar() {
               <span className="hidden text-sm text-zinc-400 sm:inline">
                 {user.display_name || user.username}
               </span>
+              <NavLink
+                to="/settings"
+                className="rounded-lg bg-surface-elevated px-3 py-1.5 text-xs font-medium text-zinc-300 transition-colors hover:text-zinc-100"
+              >
+                AI 設定
+              </NavLink>
               <button
                 onClick={handleLogout}
                 className="rounded-lg bg-surface-elevated px-3 py-1.5 text-xs font-medium text-zinc-300 transition-colors hover:text-zinc-100"
@@ -246,6 +253,14 @@ export default function App() {
             element={
               <RequireAuth>
                 <Lesson />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <RequireAuth>
+                <Settings />
               </RequireAuth>
             }
           />

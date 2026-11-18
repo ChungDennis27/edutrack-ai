@@ -31,6 +31,11 @@ class Config:
     LLM_API_KEY = os.getenv("LLM_API_KEY", os.getenv("ANTHROPIC_API_KEY", ""))
     LLM_MODEL = os.getenv("LLM_MODEL", "deepseek-flash-free")
     ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+    # UI override. Gitignored. Takes effect on the next request, no restart.
+    LLM_SETTINGS_PATH = os.getenv(
+        "LLM_SETTINGS_PATH",
+        str(BASE_DIR.parent / "data" / "llm_settings.json"),
+    )
 
     # ChromaDB
     CHROMA_PERSIST_DIR = os.getenv(

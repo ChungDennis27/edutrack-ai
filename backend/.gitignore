@@ -4,3 +4,4 @@ __pycache__/
 *.pyc
 app/data/chroma_store/
 data/uploads/
+data/llm_settings.json

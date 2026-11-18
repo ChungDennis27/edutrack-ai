@@ -189,6 +189,10 @@ docker compose up --build -d       # 背景重建並啟動
 | POST | `/api/lessons` | 由最低分或指定知識點生成約 5 分鐘微課堂（只搜 DSE） |
 | GET | `/api/lessons/latest` | 讀回自己最近一課 |
 | GET | `/api/lessons/<id>` | 讀回自己的一課 |
+| GET | `/api/settings/llm` | 讀取 AI 設定（key 只回遮罩） |
+| PUT | `/api/settings/llm` | 儲存 Base URL / key / 模型，下一句即時生效 |
+| POST | `/api/settings/llm/test` | 用目前表格的設定試連一次 |
+| POST | `/api/settings/llm/reset` | 還原成 `.env` |
 
 > 認證採 JWT httpOnly Cookie + CSRF double-submit：所有非 GET 請求必須帶 `X-CSRF-TOKEN`（前端已由 `src/lib/api.ts` 自動處理）。
 
@@ -206,6 +210,10 @@ docker compose up --build -d       # 背景重建並啟動
 cd backend
 flask --app run.py db upgrade
 ```
+
+### AI 設定
+
+登入後右上角「AI 設定」可以改 Base URL、API key 同模型，方便 key 過期或改用中轉站。設定寫入 `backend/data/llm_settings.json`（已 gitignore），下一句對話即時生效，不用重開。頁面不會再顯示完整 key。
 
 ## 技術棧
 
