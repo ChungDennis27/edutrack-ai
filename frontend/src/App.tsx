@@ -10,6 +10,7 @@ import MathHint from "./components/MathHint";
 import Quiz from "./components/Quiz";
 import Flashcards from "./components/Flashcard";
 import Library from "./components/Library";
+import Lesson from "./components/Lesson";
 
 const NAV_ITEMS = [
   { to: "/", label: "首頁" },
@@ -20,6 +21,7 @@ const NAV_ITEMS = [
   { to: "/quiz", label: "測驗" },
   { to: "/flashcards", label: "記憶卡" },
   { to: "/library", label: "資料庫" },
+  { to: "/lesson", label: "微課堂" },
   { to: "/dashboard", label: "分析" },
 ];
 
@@ -156,6 +158,12 @@ function HomePage() {
             上傳自己的 PDF / TXT / MD，導師可切換只搜你的資料
           </p>
         </NavLink>
+        <NavLink to="/lesson" className="glass-card-hover p-6">
+          <h3 className="mb-2 text-lg font-semibold">弱項微課堂</h3>
+          <p className="text-sm text-zinc-400">
+            由最低分知識點出一節短課，只引用 DSE 筆記
+          </p>
+        </NavLink>
       </section>
     </div>
   );
@@ -230,6 +238,14 @@ export default function App() {
             element={
               <RequireAuth>
                 <Library />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/lesson"
+            element={
+              <RequireAuth>
+                <Lesson />
               </RequireAuth>
             }
           />

@@ -18,7 +18,8 @@ edutrack-ai/
 │   │   │   ├── quizzes.py            # AI 動態測驗生成
 │   │   │   ├── flashcards.py         # SM-2 間隔重複
 │   │   │   ├── analytics.py          # 弱項分析報告
-│   │   │   └── uploads.py            # 個人筆記上傳（PDF/TXT/MD）
+│   │   │   ├── uploads.py            # 個人筆記上傳（PDF/TXT/MD）
+│   │   │   └── lessons.py            # 弱項微課堂
 │   │   ├── services/
 │   │   │   ├── llm_client.py         # Provider 無關 LLM 層（OpenAI 相容 / Anthropic）
 │   │   │   ├── prompt_rules.py       # 共用 prompt 規則（數學式用普通文字）
@@ -31,6 +32,7 @@ edutrack-ai/
 │   │   │   ├── quiz_generator.py     # 測驗 JSON 生成與驗證
 │   │   │   ├── essay_grading.py      # 英文作文批改（C/L/O）
 │   │   │   ├── math_hint.py          # 數學步驟提示
+│   │   │   ├── micro_lesson.py       # 弱項微課堂（只引用 DSE 筆記）
 │   │   │   ├── flashcard_service.py  # SM-2 演算法
 │   │   │   └── analytics.py          # 弱項分析 + 週趨勢
 │   │   └── data/
@@ -44,7 +46,7 @@ edutrack-ai/
 │   │   ├── seed_db.py                # 課程科目／課題／知識點（upsert）
 │   │   ├── seed_attempts.py          # 合成測驗資料（弱項分析用）
 │   │   └── wait_for_db.py            # Docker 啟動時等 DB 就緒
-│   ├── tests/                        # pytest（SM-2 / chunking / analytics / library）
+│   ├── tests/                        # pytest（SM-2 / chunking / analytics / library / lesson）
 │   ├── Dockerfile                    # python:3.12-slim + gunicorn
 │   ├── docker-entrypoint.sh          # migrate → seed → ingest → gunicorn
 │   ├── requirements.txt
@@ -57,6 +59,7 @@ edutrack-ai/
     │   │   ├── common/               # ChatPanel / MarkdownMath (Markdown+KaTeX) 共用元件
     │   │   ├── ChatBot/              # SSE 串流 RAG 聊天（可切 DSE / 我的 / 全部）
     │   │   ├── Library/              # 個人筆記拖放上傳
+    │   │   ├── Lesson/               # 弱項 5 分鐘微課堂
     │   │   ├── ClassicalChinese/     # 文言文雙欄對照 + AI 導師
     │   │   ├── MathHint/             # 數學 Method Marks 步驟引導
     │   │   ├── EssayGrader/          # 英文作文批改報告
@@ -183,12 +186,19 @@ docker compose up --build -d       # 背景重建並啟動
 | GET | `/api/uploads` | 列出自己的筆記同配額 |
 | POST | `/api/uploads` | 上傳 PDF / TXT / MD（multipart，欄位 `file` + `subject`） |
 | DELETE | `/api/uploads/<id>` | 刪除自己的檔案同向量 |
+| POST | `/api/lessons` | 由最低分或指定知識點生成約 5 分鐘微課堂（只搜 DSE） |
+| GET | `/api/lessons/latest` | 讀回自己最近一課 |
+| GET | `/api/lessons/<id>` | 讀回自己的一課 |
 
 > 認證採 JWT httpOnly Cookie + CSRF double-submit：所有非 GET 請求必須帶 `X-CSRF-TOKEN`（前端已由 `src/lib/api.ts` 自動處理）。
 
 ### 個人筆記庫
 
 學生可在 `/library` 上傳自己的 PDF、TXT、MD。配額係 **20 個檔、每個 10MB、合計 50MB**。檔案存在 `backend/data/uploads/<user_id>/`，向量入獨立 collection `user_knowledge_base`，metadata 必須帶 `user_id`。聊天預設仍然只搜 DSE；可切「我的資料」或「全部」。掃描版 PDF 唔會做 OCR。
+
+### 弱項微課堂
+
+分析頁每個弱項可以開一節約 5 分鐘的課。沒有指定知識點時，用掌握度最低的一點。課堂只搜 DSE 筆記；檢索不到，或模型判斷筆記不足，就回 `insufficient`，不會硬作內容。數學例題只給步驟提示。檢查題寫入現有 `quiz_attempts`，提交仍用 `/api/quiz/submit`。
 
 已有資料庫要先升級 schema：
 

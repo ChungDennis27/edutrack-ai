@@ -42,6 +42,7 @@ def create_app(config_name: str = "default") -> Flask:
     from app.routes.flashcards import flashcards_bp
     from app.routes.analytics import analytics_bp
     from app.routes.uploads import uploads_bp
+    from app.routes.lessons import lessons_bp
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(ai_tutor_bp, url_prefix="/api/chat")
@@ -49,6 +50,7 @@ def create_app(config_name: str = "default") -> Flask:
     app.register_blueprint(flashcards_bp, url_prefix="/api/flashcards")
     app.register_blueprint(analytics_bp, url_prefix="/api/analytics")
     app.register_blueprint(uploads_bp, url_prefix="/api/uploads")
+    app.register_blueprint(lessons_bp, url_prefix="/api/lessons")
 
     @app.route("/api/health")
     def health():

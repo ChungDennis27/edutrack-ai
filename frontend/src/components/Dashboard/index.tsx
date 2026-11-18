@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Area,
   AreaChart,
@@ -286,6 +287,12 @@ export default function Dashboard() {
                   {rec.name_zh}
                 </h4>
                 <p className="text-xs text-zinc-500">{rec.message}</p>
+                <Link
+                  to={`/lesson?kp=${rec.knowledge_point_id}`}
+                  className="mt-3 inline-block text-xs font-medium text-primary-400 hover:text-primary-300"
+                >
+                  上 5 分鐘微課堂
+                </Link>
               </div>
             ))}
           </div>

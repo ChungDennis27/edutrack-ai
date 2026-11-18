@@ -56,6 +56,9 @@ class User(db.Model):
     documents: Mapped[list["UserDocument"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
+    micro_lessons: Mapped[list["MicroLesson"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
 
     def set_password(self, password: str) -> None:
         self.password_hash = bcrypt.hashpw(
@@ -333,3 +336,33 @@ class UserDocument(db.Model):
             "error": self.error_message,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
+
+
+class MicroLesson(db.Model):
+    """A short lesson grounded in DSE notes for one knowledge point.
+
+    Check questions live on the linked quiz attempt, so a completed lesson
+    updates the same mastery records as a normal quiz.
+    """
+
+    __tablename__ = "micro_lessons"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    knowledge_point_id: Mapped[int] = mapped_column(
+        ForeignKey("knowledge_points.id"), nullable=False, index=True
+    )
+    attempt_id: Mapped[int | None] = mapped_column(ForeignKey("quiz_attempts.id"))
+    objective: Mapped[str] = mapped_column(Text, nullable=False)
+    explanation: Mapped[str] = mapped_column(Text, nullable=False)
+    example_json: Mapped[str] = mapped_column(Text, nullable=False)
+    sources_json: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    user: Mapped["User"] = relationship(back_populates="micro_lessons")
+    knowledge_point: Mapped["KnowledgePoint"] = relationship()
+    attempt: Mapped["QuizAttempt | None"] = relationship()
+
+    __table_args__ = (
+        Index("ix_micro_lessons_user_kp_created", "user_id", "knowledge_point_id", "created_at"),
+    )
