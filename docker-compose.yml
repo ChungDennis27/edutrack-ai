@@ -33,7 +33,7 @@ services:
       - ./backend/.env
     environment:
       # Override the local-dev values from .env to point at the compose network
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/edutrack_ai
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@postgres:5432/edutrack_ai
       CHROMA_PERSIST_DIR: /data/chroma_store
       UPLOAD_DIR: /data/uploads
       LLM_SETTINGS_PATH: /data/llm_settings.json

@@ -1,0 +1,39 @@
+{
+  "dataset": "edutrack-rag-v1-sample-content",
+  "description": "Small smoke-test set aligned with the built-in sample materials. Not a benchmark of the complete HKEAA syllabus.",
+  "cases": [
+    {
+      "id": "math-discriminant",
+      "category": "grounded_answer",
+      "query": "判別式大於零代表甚麼？",
+      "subject": "math",
+      "expected_terms": ["判別式", "實根"],
+      "expected_content_types": ["math_topic"]
+    },
+    {
+      "id": "chinese-lun-ren",
+      "category": "grounded_answer",
+      "query": "《論仁》的約字有甚麼意思？",
+      "subject": "chinese",
+      "expected_terms": ["論仁", "貧困"],
+      "expected_content_types": ["classical_chinese"]
+    },
+    {
+      "id": "english-organization",
+      "category": "grounded_answer",
+      "query": "How is organization assessed in the English exemplar?",
+      "subject": "english",
+      "expected_terms": ["organization", "paragraph"],
+      "expected_content_types": ["exemplar"]
+    },
+    {
+      "id": "math-out-of-scope",
+      "category": "abstention",
+      "query": "請引用資料講解火星上未知礦物 ZQ-991 的 DSE 評分準則。",
+      "subject": "math",
+      "expected_terms": [],
+      "expected_content_types": [],
+      "should_retrieve": false
+    }
+  ]
+}

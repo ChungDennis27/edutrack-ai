@@ -223,6 +223,20 @@ flask --app run.py db upgrade
 - **LLM**: Provider 無關（OpenAI 相容端點，如 TeamoRouter `deepseek-flash-free`；或原生 Anthropic）
 - **Embedding**: sentence-transformers (multilingual)
 
+## RAG Evaluation
+
+`backend/evaluation_cases.json` contains a small, versioned smoke-test set for the built-in sample materials. It is not a complete syllabus benchmark. Run retrieval-only evaluation by default; this does not call the configured LLM and therefore has no generation API cost:
+
+```powershell
+cd backend ; .\venv\Scripts\activate
+python scripts\evaluate_rag.py
+python scripts\evaluate_rag.py --top-k 8 --threshold 0.6 --output reports\rag-eval.md
+```
+
+The report includes raw-candidate Recall@k/MRR and a separate recall score after the configured similarity threshold, plus subject-filter violations, personal-note leak checks, and an abstention retrieval case. This distinguishes missing evidence from relevant candidates discarded by the threshold. The fixed dataset is aligned to built-in quadratic, 論語, and English exemplar chunks; it should not be presented as broad DSE coverage. Add reviewed cases when new verified materials enter Chroma.
+
+`--live` is optional and makes real calls to the configured LLM (which may incur cost). It adds mechanical citation, refusal, and math-answer-leak checks, but those heuristics do not establish answer correctness. Manually review live outputs before making quality claims. No default evaluation command contacts TeamoRouter or another LLM provider.
+
 ## LLM 設定
 
 `.env` 預設指向 TeamoRouter（OpenAI 相容）：
