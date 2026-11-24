@@ -1,6 +1,6 @@
 {
-  "dataset": "edutrack-rag-v1-sample-content",
-  "description": "Small smoke-test set aligned with the built-in sample materials. Not a benchmark of the complete HKEAA syllabus.",
+  "dataset": "edutrack-rag-v2-sample-and-original-notes",
+  "description": "Small smoke-test set aligned with built-in samples and original study notes. Not a benchmark of the complete HKEAA syllabus.",
   "cases": [
     {
       "id": "math-discriminant",
@@ -25,6 +25,27 @@
       "subject": "english",
       "expected_terms": ["organization", "paragraph"],
       "expected_content_types": ["exemplar"]
+    },
+    {
+      "id": "math-original-quadratic-notes",
+      "category": "grounded_answer",
+      "query": "二次方程的判別式大於零有甚麼意思？",
+      "subject": "math",
+      "expected_terms": ["判別式", "兩個不相等的實根"]
+    },
+    {
+      "id": "english-original-writing-notes",
+      "category": "grounded_answer",
+      "query": "How should I organize body paragraphs in English writing?",
+      "subject": "english",
+      "expected_terms": ["body paragraphs", "main idea"]
+    },
+    {
+      "id": "chinese-original-reading-notes",
+      "category": "grounded_answer",
+      "query": "中文閱讀理解點樣用文本依據回答問題？",
+      "subject": "chinese",
+      "expected_terms": ["文本依據", "段落"]
     },
     {
       "id": "math-out-of-scope",

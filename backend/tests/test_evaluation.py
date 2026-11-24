@@ -54,6 +54,20 @@ def test_raw_candidates_distinguish_threshold_failure_from_missing_evidence():
     assert row["passed"] is False
 
 
+def test_expected_terms_may_be_supported_across_multiple_chunks():
+    case = EvalCase(
+        id="writing",
+        query="organization",
+        subject="english",
+        expected_terms=("body paragraphs", "main idea"),
+    )
+    first = _hit("Body paragraphs should follow a clear outline.", subject="english", content_type="note")
+    second = _hit("Give each paragraph one main idea.", subject="english", content_type="note")
+    row = evaluate_retrieval_case(case, [first, second], top_k=5)
+    assert row["evidence_pass"] is True
+    assert row["reciprocal_rank"] == 0.5
+
+
 def test_wrong_subject_and_private_chunks_are_reported_as_leaks():
     case = EvalCase(id="math", query="x", subject="math")
     hits = [

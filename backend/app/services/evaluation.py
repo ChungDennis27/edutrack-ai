@@ -40,9 +40,11 @@ def evaluate_retrieval_case(
             and not (hit.metadata or {}).get("user_id")
             and (hit.metadata or {}).get("origin") != "user_upload"
         ]
+        found: set[str] = set()
         for rank, hit in enumerate(ranked_relevant, 1):
             haystack = f"{hit.text} {hit.metadata or {}}".casefold()
-            if expected and all(term in haystack for term in expected):
+            found.update(term for term in expected if term in haystack)
+            if expected and len(found) == len(expected):
                 return 1.0 / rank, rank
         return 0.0, None
 
@@ -71,12 +73,8 @@ def evaluate_retrieval_case(
         if (hit.metadata or {}).get("subject") == case.subject
         and not (hit.metadata or {}).get("user_id")
         and (hit.metadata or {}).get("origin") != "user_upload"
-        and all(
-            term in f"{hit.text} {hit.metadata or {}}".casefold()
-            for term in expected
-        )
     ] if expected else []
-    evidence_pass = (not case.expected_terms) or bool(candidate_matches)
+    evidence_pass = (not case.expected_terms) or matched_at is not None
     threshold_evidence_pass = (not case.expected_terms) or threshold_matched_at is not None
     return {
         "case_id": case.id,
