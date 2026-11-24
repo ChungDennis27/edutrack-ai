@@ -33,14 +33,21 @@ def evaluate_retrieval_case(
         and (hit.metadata or {}).get("origin") != "user_upload"
     ]
     expected = [term.casefold() for term in case.expected_terms]
-    reciprocal_rank = 0.0
-    matched_at = None
-    for rank, hit in enumerate(relevant, 1):
-        haystack = f"{hit.text} {hit.metadata or {}}".casefold()
-        if expected and all(term in haystack for term in expected):
-            reciprocal_rank = 1.0 / rank
-            matched_at = rank
-            break
+    def rank_expected(items: list[Any]) -> tuple[float, int | None]:
+        ranked_relevant = [
+            hit for hit in items
+            if (hit.metadata or {}).get("subject") == case.subject
+            and not (hit.metadata or {}).get("user_id")
+            and (hit.metadata or {}).get("origin") != "user_upload"
+        ]
+        for rank, hit in enumerate(ranked_relevant, 1):
+            haystack = f"{hit.text} {hit.metadata or {}}".casefold()
+            if expected and all(term in haystack for term in expected):
+                return 1.0 / rank, rank
+        return 0.0, None
+
+    reciprocal_rank, matched_at = rank_expected(candidates)
+    threshold_reciprocal_rank, threshold_matched_at = rank_expected(hits)
 
     wrong_subject = [
         hit for hit in hits
@@ -70,9 +77,7 @@ def evaluate_retrieval_case(
         )
     ] if expected else []
     evidence_pass = (not case.expected_terms) or bool(candidate_matches)
-    threshold_evidence_pass = (not case.expected_terms) or any(
-        hit in hits for hit in candidate_matches
-    )
+    threshold_evidence_pass = (not case.expected_terms) or threshold_matched_at is not None
     return {
         "case_id": case.id,
         "category": case.category,
@@ -93,10 +98,12 @@ def evaluate_retrieval_case(
         "top_k": top_k,
         "reciprocal_rank": round(reciprocal_rank, 4),
         "expected_match_rank": matched_at,
+        "threshold_reciprocal_rank": round(threshold_reciprocal_rank, 4),
+        "threshold_match_rank": threshold_matched_at,
         "content_type_pass": bool(type_hits) if case.expected_content_types else None,
         "wrong_subject_count": len(wrong_subject),
         "personal_leak_count": len(personal_leaks),
-        "passed": outcome_pass and evidence_pass and not wrong_subject and not personal_leaks
+        "passed": outcome_pass and threshold_evidence_pass and not wrong_subject and not personal_leaks
         and (bool(type_hits) if case.expected_content_types else True),
         "hits": [
             {
@@ -167,6 +174,10 @@ def summarize(rows: list[dict]) -> dict:
         ) if retrieval_rows else 0.0,
         "mean_reciprocal_rank": round(
             sum(row["reciprocal_rank"] for row in expected_rows) / len(expected_rows), 4
+        ) if expected_rows else 0.0,
+        "threshold_mean_reciprocal_rank": round(
+            sum(row.get("threshold_reciprocal_rank", row["reciprocal_rank"]) for row in expected_rows)
+            / len(expected_rows), 4
         ) if expected_rows else 0.0,
         "wrong_subject_hits": sum(row["wrong_subject_count"] for row in rows),
         "personal_leaks": sum(row["personal_leak_count"] for row in rows),

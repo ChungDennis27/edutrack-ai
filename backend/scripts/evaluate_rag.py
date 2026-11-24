@@ -57,7 +57,8 @@ def markdown_report(report: dict) -> str:
         f"Cases: {summary['passed']}/{summary['case_count']} passed · "
         f"Raw evidence Recall@k: {summary['recall_at_k']:.2%} · "
         f"MRR: {summary['mean_reciprocal_rank']:.4f}",
-        f"After similarity threshold: Recall@k {summary['threshold_recall_at_k']:.2%}",
+        f"After similarity threshold: Recall@k {summary['threshold_recall_at_k']:.2%} · "
+        f"MRR {summary['threshold_mean_reciprocal_rank']:.4f}",
         f"Wrong-subject hits: {summary['wrong_subject_hits']} · "
         f"Personal leaks: {summary['personal_leaks']}",
         "",

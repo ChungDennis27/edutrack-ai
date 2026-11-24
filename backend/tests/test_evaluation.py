@@ -49,6 +49,9 @@ def test_raw_candidates_distinguish_threshold_failure_from_missing_evidence():
     assert row["threshold_evidence_pass"] is False
     assert row["candidate_count"] == 1
     assert row["threshold_rejected_count"] == 1
+    assert row["reciprocal_rank"] == 1.0
+    assert row["threshold_reciprocal_rank"] == 0.0
+    assert row["passed"] is False
 
 
 def test_wrong_subject_and_private_chunks_are_reported_as_leaks():
@@ -141,3 +144,15 @@ def test_mrr_counts_missed_expected_evidence_as_zero():
          "wrong_subject_count": 0, "personal_leak_count": 0},
     ]
     assert summarize(rows)["mean_reciprocal_rank"] == 0.5
+
+
+def test_mrr_uses_candidate_ranking_and_threshold_mrr_is_separate():
+    rows = [
+        {"passed": False, "category": "grounded_answer", "evidence_pass": True,
+         "threshold_evidence_pass": False, "reciprocal_rank": 1.0,
+         "threshold_reciprocal_rank": 0.0, "has_expected_evidence": True,
+         "wrong_subject_count": 0, "personal_leak_count": 0},
+    ]
+    summary = summarize(rows)
+    assert summary["mean_reciprocal_rank"] == 1.0
+    assert summary["threshold_mean_reciprocal_rank"] == 0.0
